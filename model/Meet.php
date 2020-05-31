@@ -11,6 +11,9 @@ class Meet {
     private $_finalised; //boolean has the event been confirmed
     private $_organiser; //a user object of id
     private $_attendees = array(); //an array of user objects or ids
+    private $_geolocation;
+    private $_postcode;
+    private $_eventType;
 
 
     /* Getters */
@@ -41,6 +44,18 @@ class Meet {
 
     public function getAttendees(){
         return $this->_attendees;
+    }
+
+    public function getGeolocation(){
+        return $this->_geolocation;
+    }
+
+    public function getPostCode(){
+        return $this->_postcode;
+    }
+
+    public function getEventType(){
+        return $this->_eventType;
     }
 
     /* Setters including database validation*/
@@ -85,5 +100,29 @@ class Meet {
     }
 
 
+    /**
+     * Deal with attendees
+     */
+
+    public function addAttendee($attendee){
+        //add an attendee to the array
+
+        //add meetid and us
+    }
+
+    public function removeAttendee($attendee){
+        //remove an attendee from the array
+    }
+
+    private function setGeolocation(){
+        /** TODO - code for calculating the geolocation
+         *
+         */
+
+        //iterate through the attendees array,
+        //store each geolocation
+
+        /** ||id||userid||meetid */
+    }
 
 }
