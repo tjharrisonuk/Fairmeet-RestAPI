@@ -1,4 +1,5 @@
 <?php
+namespace fairmeet\controller;
 
 class DB {
 

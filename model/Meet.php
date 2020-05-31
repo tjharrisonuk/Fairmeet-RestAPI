@@ -1,4 +1,5 @@
 <?php
+namespace fairmeet\model;
 
 class MeetException extends Exception {}
 
@@ -13,7 +14,7 @@ class Meet {
     private $_attendees = array(); //an array of user objects or ids
     private $_geolocation;
     private $_postcode;
-    private $_eventType;
+    private $_eventType; //eg bar
 
 
     /* Getters */
