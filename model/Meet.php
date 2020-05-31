@@ -43,5 +43,7 @@ class Meet {
         return $this->_attendees;
     }
 
+    /* Setters including database validation*/
+
 
 }
