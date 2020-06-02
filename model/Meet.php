@@ -1,9 +1,7 @@
 <?php
 namespace fairmeet\model;
-
-class MeetException extends Exception {
-
-}
+use Exception;
+class MeetException extends Exception {}
 
 class Meet {
 
@@ -21,8 +19,19 @@ class Meet {
 
     /** TODO add constructor  */
 
+    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $attendees, $geolocation, $postcode, $eventType){
+        $this->setId($id);
+        $this->setTitle($title);
+        $this->setDescription($description);
+        $this->setScheduledTime($scheduledTime);
+        $this->setFinalised($finalised);
+        $this->setOrganiser($organiser);
+        $this->setAttendees($attendees);
+        $this->setGeolocation($geolocation);
+        $this->setPostcode($postcode);
+        $this->setEventType($eventType);
+    }
 
-    
 
     /* Getters */
 
@@ -76,14 +85,14 @@ class Meet {
         // Id can't have already been set
 
         if(($id !== null) && (!is_numeric($id) || $id <= 0 || $id > 9223372036854775807 || $this->_id !== null)){
-            throw new MeetException("Meet Id Error");
+            throw new Exception("Meet Id Error");
         }
         $this->_id = $id;
     }
 
     public function setTitle($title){
         if(strlen($title) < 0 || strlen($title) > 255){
-            throw new TaskException("Meet title error");
+            throw new MeetException("Meet title error");
         }
 
         $this->_title = $title;
@@ -91,7 +100,7 @@ class Meet {
 
     public function setDescription($description){
         if(($description !== null) && (strlen($description) > 147772145)){
-            throw new TaskException("Task description error");
+            throw new MeetException("MEet description error");
         }
 
         $this->_description = $description;
@@ -100,16 +109,46 @@ class Meet {
     public function setScheduledTime($scheduledTime){
 
         if(($scheduledTime !== null) && date_format(date_create_from_format('d/m/Y H:i', $scheduledTime), 'd/m/Y H:i') != $scheduledTime){
-            throw new TaskException("Meet Scheduled Time error");
+            throw new MeetException("Meet Scheduled Time error");
         }
 
         $this->_scheduledTime = $scheduledTime;
 
     }
 
+    public function setOrganiser($organiser){
+        /** TODO - validation on this */
+        $this->_organiser = $organiser;
+    }
+
+    public function setFinalised($finalised){
+        /** TODO - validation on this */
+        $this->_finalised = $finalised;
+    }
+
+    public function setAttendees($attendees){
+        /** TODO - validation on this */
+        $this->_attendees = $attendees;
+
+    }
+
+    public function setGeolocation($geolocation){
+        /** TODO - validation on this
+         *
+         *  Consider whether this should be a public or
+         *  private
+         *
+         */
+        $this->_geolocation = $geolocation;
+    }
+
+    public function setPostcode($postcode){
+        /** TODO - validation on this */
+        $this->_postcode = $postcode;
+    }
 
     /**
-     * Deal with attendees
+     * Class Methods
      */
 
     public function addAttendee($attendee){
@@ -125,15 +164,5 @@ class Meet {
         /** TODO - removeAttendee functionality for meet */
     }
 
-    private function setGeolocation(){
-        /** TODO - code for calculating the geolocation
-         *
-         */
-
-        //iterate through the attendees array,
-        //store each geolocation
-
-        /** ||id||userid||meetid */
-    }
 
 }
