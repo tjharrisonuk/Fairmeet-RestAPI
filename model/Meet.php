@@ -16,9 +16,6 @@ class Meet {
     private $_postcode;
     private $_eventType; //eg bar
 
-
-    /** TODO add constructor  */
-
     public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $attendees, $geolocation, $postcode, $eventType){
         $this->setId($id);
         $this->setTitle($title);
@@ -32,8 +29,7 @@ class Meet {
         $this->setEventType($eventType);
     }
 
-
-    /* Getters */
+    /** Getters */
 
     public function getID(){
         return $this->_id;
@@ -75,7 +71,8 @@ class Meet {
         return $this->_eventType;
     }
 
-    /* Setters including database validation*/
+    /** Setters */
+
     public function setId($id){
 
         // Can't be null
@@ -143,7 +140,12 @@ class Meet {
     }
 
     public function setPostcode($postcode){
-        /** TODO - validation on this */
+        /** TODO - validation on this
+         *
+         * API call to postcodes.io??
+         *
+         */
+
         $this->_postcode = $postcode;
     }
 
