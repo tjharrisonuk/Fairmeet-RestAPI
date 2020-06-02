@@ -1,7 +1,9 @@
 <?php
 namespace fairmeet\model;
 
-class MeetException extends Exception {}
+class MeetException extends Exception {
+
+}
 
 class Meet {
 
@@ -16,6 +18,11 @@ class Meet {
     private $_postcode;
     private $_eventType; //eg bar
 
+
+    /** TODO add constructor  */
+
+
+    
 
     /* Getters */
 
@@ -106,6 +113,8 @@ class Meet {
      */
 
     public function addAttendee($attendee){
+       /** TODO - addAttendee functionality for meet */
+
         //add an attendee to the array
 
         //add meetid and us
@@ -113,6 +122,7 @@ class Meet {
 
     public function removeAttendee($attendee){
         //remove an attendee from the array
+        /** TODO - removeAttendee functionality for meet */
     }
 
     private function setGeolocation(){
