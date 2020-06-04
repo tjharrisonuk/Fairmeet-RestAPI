@@ -1,5 +1,6 @@
 <?php
 namespace fairmeet\controller;
+use PDO;
 
 class DB {
 

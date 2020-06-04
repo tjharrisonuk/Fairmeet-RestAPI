@@ -97,7 +97,7 @@ class Meet {
 
     public function setDescription($description){
         if(($description !== null) && (strlen($description) > 147772145)){
-            throw new MeetException("MEet description error");
+            throw new MeetException("Meet description error");
         }
 
         $this->_description = $description;

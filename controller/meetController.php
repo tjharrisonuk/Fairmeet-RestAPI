@@ -1,6 +1,8 @@
 <?php
 namespace fairmeet\controller;
 
+use PDOException;
+
 require_once ('DB.php');
 require_once ('../model/Meet.php');
 require_once ('../mode/Response.php');
