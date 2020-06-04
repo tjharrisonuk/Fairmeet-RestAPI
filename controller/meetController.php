@@ -44,6 +44,8 @@ try {
      *
      *  Update a meets details
      *  -- must be the organiser to do this
+     *  -- use this to add attendee to a meet ??
+     *  -- use this to remove an attendee??
      *
      */
 
