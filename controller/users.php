@@ -2,15 +2,16 @@
 namespace fairmeet\controller;
 
 use fairmeet\model\Response;
+use PDO;
 use PDOException;
 
 require_once ('DB.php');
-require_once ('../model/Meet.php');
 require_once ('../model/Response.php');
 
 // set up connections to the DB
 try {
-    $writeDb = DB:: connectWriteDB();
+    $writeDB = DB::connectWriteDB();
+
 } catch (PDOException $e){
     error_log("Connection error - ".$e, 0);
     $response = new Response();
@@ -63,7 +64,7 @@ if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->
     $response->setSuccess(false);
 
     (!isset($jsonData->fullname) ? $response->addMessage("Full name not supplied") : false);
-    (!isset($jsonData->username) ? $response->addMessage("Username not supplied") : false);
+    (!isset($jsonData->email) ? $response->addMessage("Email not supplied") : false);
     (!isset($jsonData->password) ? $response->addMessage("Password not supplied") : false);
 
     $response->send();
@@ -78,8 +79,8 @@ if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strle
     (strlen($jsonData->fullname) < 1 ? $response->addMessage("Full name cannot be blank") : false);
     (strlen($jsonData->fullname) > 255 ? $response->addMessage("Full name cannot be over 255 characters") : false);
 
-    (strlen($jsonData->username) < 1 ? $response->addMessage("Email cannot be blank") : false);
-    (strlen($jsonData->username) > 255 ? $response->addMessage("Email cannot be over 255 characters") : false);
+    (strlen($jsonData->email) < 1 ? $response->addMessage("Email cannot be blank") : false);
+    (strlen($jsonData->email) > 255 ? $response->addMessage("Email cannot be over 255 characters") : false);
 
     (strlen($jsonData->password) < 1 ? $response->addMessage("Password cannot be blank") : false);
     (strlen($jsonData->password) > 255 ? $response->addMessage("Password cannot be over 255 characters") : false);
