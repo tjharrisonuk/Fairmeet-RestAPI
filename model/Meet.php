@@ -120,14 +120,18 @@ class Meet {
     }
 
     public function setFinalised($finalised){
-        /** TODO - validation on this */
+
+        if(strtoupper($finalised) !== 'Y' && strtoupper($finalised) !== 'N'){
+            throw new TaskException("Meet finalised must be Y or N");
+        }
+
         $this->_finalised = $finalised;
+
     }
 
     public function setAttendees($attendees){
         /** TODO - validation on this */
         $this->_attendees = $attendees;
-
     }
 
     public function setGeolocation($geolocation){
