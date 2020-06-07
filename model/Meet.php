@@ -5,7 +5,7 @@ class MeetException extends Exception {}
 
 class Meet {
 
-    private $_id;
+    private $_id; //foreign key in db linking this to userid ??
     private $_title; //eg. Tom's Birthday Drinks
     private $_description;
     private $_scheduledTime; //a scheduled time that can be adjusted
@@ -135,6 +135,16 @@ class Meet {
         }
 
         $this->_finalised = $finalised;
+
+    }
+
+    public function setEventType($eventType){
+
+        if(strlen($eventType) < 0 || strlen($eventType) > 255){
+            throw new MeetException("Meet Event Type error");
+        }
+
+        $this->_eventType = $eventType;
 
     }
 
