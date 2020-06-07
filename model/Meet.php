@@ -9,7 +9,7 @@ class Meet {
     private $_title; //eg. Tom's Birthday Drinks
     private $_description;
     private $_scheduledTime; //a scheduled time that can be adjusted
-    private $_finalised; //boolean has the event been confirmed
+    private $_finalised; //enum Y or N - has the event been confirmed
     private $_organiser; //a user object of id
     private $_attendees = array(); //an array of user objects or ids
     private $_geolocation;
@@ -96,6 +96,7 @@ class Meet {
     }
 
     public function setDescription($description){
+        //description stored as mediumint in db
         if(($description !== null) && (strlen($description) > 147772145)){
             throw new MeetException("Meet description error");
         }
@@ -135,6 +136,8 @@ class Meet {
          *  Consider whether this should be a public or
          *  private
          *
+         *  Should geolocation be split into lon and lat
+         *
          */
         $this->_geolocation = $geolocation;
     }
@@ -166,5 +169,19 @@ class Meet {
         /** TODO - removeAttendee functionality for meet */
     }
 
+    public function returnMeetAsArray(){
+        $meet = array();
+        $meet['id'] = $this->getID();
+        $meet['title'] = $this->getTitle();
+        $meet['description'] = $this->getDescription();
+        $meet['scheduledTime'] = $this->getScheduledTime();
+        $meet['finalised'] = $this->getFinalised();
+        $meet['organiser'] = $this->getOrganiser();
+        $meet['attendees'] = $this->getAttendees(); //remember this is an array too
+        $meet['geolocation'] = $this->getGeolocation();
+        $meet['eventType'] = $this->getEventType();
+
+        return $meet;
+    }
 
 }

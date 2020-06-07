@@ -23,6 +23,9 @@ try {
 
 /** Authorization script goes here */
 
+
+
+
 /** if we have a meeting id
  *
  *  example route: /meet/1009
@@ -70,6 +73,7 @@ if(array_key_exists("meetid", $_GET)){
          *
          */
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+
 
         /** POST request
          *
