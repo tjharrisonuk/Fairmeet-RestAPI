@@ -50,6 +50,18 @@ if(array_key_exists("meetid", $_GET)){
      */
     if($_SERVER['REQUEST_METHOD'] === 'GET'){
 
+        try{
+            $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime')
+
+        } catch (PDOException $e){
+            error_log("Database query error - ".$e, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage("Failed to get Meet".$e);
+            $response->send();
+            exit();
+        }
 
 
 

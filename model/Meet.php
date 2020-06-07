@@ -12,11 +12,12 @@ class Meet {
     private $_finalised; //boolean has the event been confirmed
     private $_organiser; //a user object of id
     private $_attendees = array(); //an array of user objects or ids
-    private $_geolocation;
+    private $_geolocationLon;
+    private $_geolocationLat;
     private $_postcode;
     private $_eventType; //eg bar
 
-    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $attendees, $geolocation, $postcode, $eventType){
+    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $attendees, $geolocationLon, $_geolocationLat, $postcode, $eventType){
         $this->setId($id);
         $this->setTitle($title);
         $this->setDescription($description);
@@ -24,7 +25,8 @@ class Meet {
         $this->setFinalised($finalised);
         $this->setOrganiser($organiser);
         $this->setAttendees($attendees);
-        $this->setGeolocation($geolocation);
+        $this->setGeolocationLon($geolocationLon);
+        $this->setGeolocationLat($geolocationLat);
         $this->setPostcode($postcode);
         $this->setEventType($eventType);
     }
@@ -59,8 +61,12 @@ class Meet {
         return $this->_attendees;
     }
 
-    public function getGeolocation(){
-        return $this->_geolocation;
+    public function getGeolocationLon(){
+        return $this->_geolocationLon;
+    }
+
+    public function getGeolocationLat(){
+        return $this->_geolocationLat;
     }
 
     public function getPostCode(){
