@@ -17,7 +17,7 @@ class Meet {
     private $_postcode;
     private $_eventType; //eg bar
 
-    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $attendees, $geolocationLon, $_geolocationLat, $postcode, $eventType){
+    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $attendees, $geolocationLon, $geolocationLat, $postcode, $eventType){
         $this->setId($id);
         $this->setTitle($title);
         $this->setDescription($description);
@@ -121,7 +121,10 @@ class Meet {
     }
 
     public function setOrganiser($organiser){
-        /** TODO - validation on this */
+        /**  TODO - validation on this
+         *
+         *  //should it be organiser id
+         */
         $this->_organiser = $organiser;
     }
 
@@ -140,7 +143,7 @@ class Meet {
         $this->_attendees = $attendees;
     }
 
-    public function setGeolocation($geolocation){
+    public function setGeolocationLon($geolocationLon){
         /** TODO - validation on this
          *
          *  Consider whether this should be a public or
@@ -149,7 +152,19 @@ class Meet {
          *  Should geolocation be split into lon and lat
          *
          */
-        $this->_geolocation = $geolocation;
+        $this->_geolocation = $geolocationLon;
+    }
+
+    public function setGeolocationLat($geolocationLat){
+        /** TODO - validation on this
+         *
+         *  Consider whether this should be a public or
+         *  private
+         *
+         *  Should geolocation be split into lon and lat
+         *
+         */
+        $this->_geolocation = $geolocationLat;
     }
 
     public function setPostcode($postcode){
@@ -170,13 +185,18 @@ class Meet {
        /** TODO - addAttendee functionality for meet */
 
         //add an attendee to the array
-
         //add meetid and us
+        //may need to be worked out on client side
+
+
     }
 
     public function removeAttendee($attendee){
         //remove an attendee from the array
-        /** TODO - removeAttendee functionality for meet */
+        /**
+         * TODO - removeAttendee functionality for meet
+         * may need to be worked out on client side
+         */
     }
 
     public function returnMeetAsArray(){
@@ -188,7 +208,9 @@ class Meet {
         $meet['finalised'] = $this->getFinalised();
         $meet['organiser'] = $this->getOrganiser();
         $meet['attendees'] = $this->getAttendees(); //remember this is an array too
-        $meet['geolocation'] = $this->getGeolocation();
+        $meet['geolocationLon'] = $this->getGeolocationLon();
+        $meet['geolocationLon'] = $this->getGeolocationLat();
+        $meet['postcode'] = $this->getPostcode();
         $meet['eventType'] = $this->getEventType();
 
         return $meet;
