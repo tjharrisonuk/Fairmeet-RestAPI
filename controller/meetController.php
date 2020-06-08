@@ -33,12 +33,13 @@ try {
  *  example route: /meet/1009
  *
  */
-if(array_key_exists("meetid", $_GET)){
+if(array_key_exists("meetid", $_GET)) {
+
 
     $meetid = $_GET['meetid'];
 
     //validate not blank, is numeric
-    if($meetid == '' || !is_numeric($meetid)){
+    if ($meetid == '' || !is_numeric($meetid)) {
         $response = new Response();
         $response->setHttpStatusCode(400); //Bad Request
         $response->setSuccess(false);
@@ -46,15 +47,16 @@ if(array_key_exists("meetid", $_GET)){
         $response->send();
         exit();
     }
-}
 
-    /** GET request
-     *
-     *  Get the details of a meet
-     * -- must be one of the attendees to do this
-     *
-     */
-    if($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+        /** GET request
+         *
+         *  Get the details of a meet
+         * -- must be one of the attendees to do this
+         *
+         */
 
         try {
             /** TODO - check on this MySQL Statement
@@ -93,15 +95,15 @@ if(array_key_exists("meetid", $_GET)){
             $response->send();
             exit();
 
-        } catch (PDOException $e){
-            error_log("Database query error - ".$e, 0);
+        } catch (PDOException $e) {
+            error_log("Database query error - " . $e, 0);
             $response = new Response();
             $response->setHttpStatusCode(500);
             $response->setSuccess(false);
-            $response->addMessage("Failed to get Meet".$e);
+            $response->addMessage("Failed to get Meet" . $e);
             $response->send();
             exit();
-        } catch (MeetException $me){
+        } catch (MeetException $me) {
             $response = new Response();
             $response->setHttpStatusCode(500);
             $response->setSuccess(false);
@@ -120,8 +122,44 @@ if(array_key_exists("meetid", $_GET)){
          *
          */
 
+        try {
+
+            /** TODO Add :userid after auth script is added */
+
+            $query = $writeDB->prepare('delete from meets where id = :meetid');
+            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount === 0) {
+                $response = new Response();
+                $response->setHttpStatusCode(404); //trying to delete a task that doesn't exist
+                $response->setSuccess(false);
+                $response->addMessage('Meet not found');
+                $response->send();
+                exit();
+            }
+
+            $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setSuccess(true);
+            $response->addMessage('Meet deleted');
+            $response->send();
+            exit();
+
+        } catch (PDOException $e) {
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage('Failed to delete meet');
+            $response->send();
+            exit();
+        }
+
 
     } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH') {
+
         /** PATCH request
          *
          *  Update a meets details
@@ -131,8 +169,11 @@ if(array_key_exists("meetid", $_GET)){
          *
          */
 
+        //do nothing
+
 
     } else {
+
         /** POST request
          *
          * Can't POST to a specific meetID as these
@@ -147,6 +188,48 @@ if(array_key_exists("meetid", $_GET)){
         exit();
     }
 
+} elseif (empty($_GET)){
+
+    /** if no meetid provided
+     *
+     *  route: /meet
+     *
+     */
+
+
+    if($_SERVER['REQUEST_METHOD'] === 'GET'){
+
+        /** GET request
+         *
+         *  TODO - return all meets
+         */
+
+
+    } else if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+        /** POST request
+         *
+         *  TODO - create a new meet
+         *
+         */
+
+    }
+
+
+
+
+    /** endpoint not found  */
+
+
+}
+
+
+
+
+
+
+
+
+
 /** show all finalised or unfinalised meets
  *
  *  maybe in v2
@@ -158,23 +241,3 @@ if(array_key_exists("meetid", $_GET)){
  * maybe in v2
  *
  */
-
-
-/** if no meetid provided
- *
- *  route: /meet
- *
- */
-
-    /** GET request
-     *
-     */
-
-    /** POST request
-     *
-     *  - create a new meet
-     *
-     */
-
-/** endpoint not found  */
-
