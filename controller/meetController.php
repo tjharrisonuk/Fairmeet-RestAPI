@@ -28,6 +28,13 @@ try {
 
 
 
+/// should the attdees route go first?
+///
+///
+
+
+if(array_key_exists("attendance"))
+
 /** if we have a meeting id
  *
  *  example route: /meet/1009
