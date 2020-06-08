@@ -139,7 +139,11 @@ class Meet {
     }
 
     public function setAttendees($attendees){
-        /** TODO - validation on this */
+        /**
+         * TODO - validation on this
+         *
+         *  must be an array of users??
+         */
         $this->_attendees = $attendees;
     }
 

@@ -34,6 +34,7 @@ try {
  *
  */
 if(array_key_exists("meetid", $_GET)){
+
     $meetid = $_GET['meetid'];
 
     //validate not blank, is numeric
