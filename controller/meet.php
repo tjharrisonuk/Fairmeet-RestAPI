@@ -144,6 +144,18 @@ if(array_key_exists("meetid", $_GET)) {
             /** TODO - check on this MySQL Statement
              *  add auth to the end when ready
              */
+
+            /** TODO -- finish this bit of logic off, committed 09/06/20 */
+            //validate that the user logged in is an actual attendee for this meet
+            $query = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid and userid = :userid');
+            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+
+
+
             $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->execute();
@@ -160,8 +172,14 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
-            /** do a query on the atttendees table to find its attendees */
-            $attendeeQuery = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid');
+
+
+
+
+
+
+
+            }
 
 
 
