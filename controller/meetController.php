@@ -25,13 +25,83 @@ try {
 
 /** Authorization script goes here */
 
+//begin auth script
+
+if(!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATION']) < 1){
+    $response = new Response();
+    $response->setHttpStatusCode(401); //unauthorised
+    $response->setSuccess(false);
+    (!isset($_SERVER['HTTP_AUTHORIZATION']) ? $response->addMessage("Access Token is missing from the header") : false);
+    (strlen($_SERVER['HTTP_AUTHORIZATION']) < 1 ? $response->addMessage("Access Token cannot be blank") : false);
+    $response->send();
+    exit();
+}
+
+$accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
 
 
+try {
+    //bring back user details / session details from the db
+    $query = $writeDb->prepare('select userid, accesstokenexpiry, useractive, loginattempts from sessions, users where sessions.userid = users.id and accesstoken = :accesstoken');
+    $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
+    $query->execute();
 
-/// should the attdees route go first?
-///
-///
+    $rowCount = $query->rowCount();
 
+    //check that there is a session for this access token
+    if ($rowCount === 0) {
+        $response = new Response();
+        $response->setHttpStatusCode(401); //unauthorised
+        $response->setSuccess(false);
+        $response->addMessage("Invalid access token");
+        $response->send();
+        exit();
+    }
+
+    $row = $query->fetch(PDO::FETCH_ASSOC);
+
+    $returned_userid = $row['userid'];
+    $returned_accesstokenexpiry = $row['accesstokenexpiry'];
+    $returned_useractive = $row['useractive'];
+    $returned_loginattempts = $row['loginattempts'];
+
+    if ($returned_useractive !== 'Y') {
+        $response = new Response();
+        $response->setHttpStatusCode(401); //unauthorised
+        $response->setSuccess(false);
+        $response->addMessage("User Account Not Active");
+        $response->send();
+        exit();
+    }
+
+    if ($returned_loginattempts >= 3) {
+        $response = new Response();
+        $response->setHttpStatusCode(401); //unauthorised
+        $response->setSuccess(false);
+        $response->addMessage("User Account is currently locked out");
+        $response->send();
+        exit();
+    }
+
+    if (strtotime($returned_accesstokenexpiry) < time()) {
+        $response = new Response();
+        $response->setHttpStatusCode(401); //unauthorised
+        $response->setSuccess(false);
+        $response->addMessage("Access token expired");
+        $response->send();
+        exit();
+    }
+
+} catch (PDOException $e){
+    $response = new Response();
+    $response->setHttpStatusCode(500); //unauthorised
+    $response->setSuccess(false);
+    $response->addMessage("There was an issue authenticating, please try again");
+    $response->send();
+    exit();
+
+}
+//end auth script
 
 if(array_key_exists("attendance"))
 
