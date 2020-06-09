@@ -17,14 +17,15 @@ class Meet {
     private $_postcode;
     private $_eventType; //eg bar
 
-    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $attendees, $geolocationLon, $geolocationLat, $postcode, $eventType){
+    /** TODO - add attendees back into constructor - removed for testing Meetcontroller */
+
+    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType){
         $this->setId($id);
         $this->setTitle($title);
         $this->setDescription($description);
         $this->setScheduledTime($scheduledTime);
         $this->setFinalised($finalised);
         $this->setOrganiser($organiser);
-        $this->setAttendees($attendees);
         $this->setGeolocationLon($geolocationLon);
         $this->setGeolocationLat($geolocationLat);
         $this->setPostcode($postcode);
@@ -112,8 +113,8 @@ class Meet {
 
     public function setScheduledTime($scheduledTime){
 
-        if(($scheduledTime !== null) && date_format(date_create_from_format('d/m/Y H:i', $scheduledTime), 'd/m/Y H:i') != $scheduledTime){
-            throw new MeetException("Meet Scheduled Time error");
+        if(($scheduledTime !== null) && !date_create_from_format('d/m/Y H:i', $scheduledTime) || date_format(date_create_from_format('d/m/Y H:i', $scheduledTime), 'd/m/Y H:i') != $scheduledTime) {
+            throw new MeetException("Meet deadline date and time error");
         }
 
         $this->_scheduledTime = $scheduledTime;
@@ -163,10 +164,8 @@ class Meet {
          *  Consider whether this should be a public or
          *  private
          *
-         *  Should geolocation be split into lon and lat
-         *
          */
-        $this->_geolocation = $geolocationLon;
+        $this->_geolocationLon = $geolocationLon;
     }
 
     public function setGeolocationLat($geolocationLat){
@@ -175,10 +174,8 @@ class Meet {
          *  Consider whether this should be a public or
          *  private
          *
-         *  Should geolocation be split into lon and lat
-         *
          */
-        $this->_geolocation = $geolocationLat;
+        $this->_geolocationLat = $geolocationLat;
     }
 
     public function setPostcode($postcode){
@@ -221,11 +218,11 @@ class Meet {
         $meet['scheduledTime'] = $this->getScheduledTime();
         $meet['finalised'] = $this->getFinalised();
         $meet['organiser'] = $this->getOrganiser();
-        $meet['attendees'] = $this->getAttendees(); //remember this is an array too
         $meet['geolocationLon'] = $this->getGeolocationLon();
-        $meet['geolocationLon'] = $this->getGeolocationLat();
+        $meet['geolocationLat'] = $this->getGeolocationLat();
         $meet['postcode'] = $this->getPostcode();
         $meet['eventType'] = $this->getEventType();
+        $meet['attendees'] = $this->getAttendees(); //remember this is an array too
 
         return $meet;
     }

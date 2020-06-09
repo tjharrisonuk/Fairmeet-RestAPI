@@ -2,6 +2,8 @@
 namespace fairmeet\controller;
 use fairmeet\model\MeetException;
 use fairmeet\model\Response;
+use fairmeet\controller\DB;
+use fairmeet\model\Meet;
 use PDO;
 use PDOException;
 
@@ -10,7 +12,8 @@ require_once ('../model/Meet.php');
 require_once ('../model/Response.php');
 
 try {
-    $writeDB = DB::connectWriteDB();
+
+    $writeDB = DB::connectwriteDB();
     $readDB = DB::connectReadDB();
 
 } catch (PDOException $e){
@@ -23,9 +26,8 @@ try {
     exit();
 }
 
-/** Authorization script goes here */
 
-//begin auth script
+/** Authorisation  */
 
 if(!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATION']) < 1){
     $response = new Response();
@@ -39,10 +41,9 @@ if(!isset($_SERVER['HTTP_AUTHORIZATION']) || strlen($_SERVER['HTTP_AUTHORIZATION
 
 $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
 
-
 try {
     //bring back user details / session details from the db
-    $query = $writeDb->prepare('select userid, accesstokenexpiry, useractive, loginattempts from sessions, users where sessions.userid = users.id and accesstoken = :accesstoken');
+    $query = $writeDB->prepare('select userid, accesstokenexpiry, useractive, loginattempts from sessions, users where sessions.userid = users.id and accesstoken = :accesstoken');
     $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
     $query->execute();
 
@@ -65,6 +66,10 @@ try {
     $returned_useractive = $row['useractive'];
     $returned_loginattempts = $row['loginattempts'];
 
+    /** ensure that the user is active, that they aren't locked out
+     *  and that the access token is still valid
+     */
+
     if ($returned_useractive !== 'Y') {
         $response = new Response();
         $response->setHttpStatusCode(401); //unauthorised
@@ -83,7 +88,7 @@ try {
         exit();
     }
 
-    if (strtotime($returned_accesstokenexpiry) < time()) {
+    if (strtotime($returned_accesstokenexpiry) > time()) { /** TODO - time comparison not working as it should. */
         $response = new Response();
         $response->setHttpStatusCode(401); //unauthorised
         $response->setSuccess(false);
@@ -103,7 +108,7 @@ try {
 }
 //end auth script
 
-if(array_key_exists("attendance"))
+//if(array_key_exists("attendance"))
 
 /** if we have a meeting id
  *
@@ -139,14 +144,14 @@ if(array_key_exists("meetid", $_GET)) {
             /** TODO - check on this MySQL Statement
              *  add auth to the end when ready
              */
-            $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d%m%Y %H:%i") as scheduledTime, finalised, organiser, attendees, geolocationLon, geolocationLat, postcode, eventType from meets where id = :taskid');
+            $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->execute();
 
             $rc = $query->RowCount();
 
             if ($rc === 0) {
-                //no meeet found with that id
+                //no meet found with that id
                 $response = new Response();
                 $response->setHttpStatusCode(404);
                 $response->setSuccess(false);
@@ -155,8 +160,16 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
+            /** do a query on the atttendees table to find its attendees */
+            $attendeeQuery = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid');
+
+
+
+
+
+
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['attendees'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
                 $meetArray[] = $meet->returnMeetAsArray();
             }
 
@@ -265,12 +278,18 @@ if(array_key_exists("meetid", $_GET)) {
         exit();
     }
 
+} elseif(array_key_exists("attending", $_GET)){
+
+    /** meets/attending */
+
+
+
 } elseif (empty($_GET)){
 
     /** if no meetid provided
      *
      *  route: /meet
-     *
+     *  // get all meets the user owns / is organiser of
      */
 
 

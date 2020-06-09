@@ -1,4 +1,8 @@
 <?php
+namespace fairmeet\controller;
+use PDO;
+use PDOException;
+use fairmeet\model\Response;
 
 require_once ('DB.php');
 require_once ('../model/Response.php');
@@ -57,7 +61,7 @@ if(array_key_exists("sessionid", $_GET)){
 
         try{
 
-            $query = $writeDB->prepare('delete from tblsessions where id = :sessionid and accesstoken = :accesstoken');
+            $query = $writeDB->prepare('delete from sessions where id = :sessionid and accesstoken = :accesstoken');
             $query->bindParam(':sessionid', $sessionid, PDO::PARAM_INT);
             $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
             $query->execute();
@@ -95,7 +99,8 @@ if(array_key_exists("sessionid", $_GET)){
         }
 
 
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH'){ //update/refresh a new access token
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'PATCH'){
+        //update/refresh a new access token
 
         if($_SERVER['CONTENT_TYPE'] !== 'application/json'){
             $response = new Response();
@@ -136,8 +141,7 @@ if(array_key_exists("sessionid", $_GET)){
             $refreshtoken = $jsonData->refresh_token;
 
             //need to join the sessions and user table together to link session user id with user id.
-            //12:00 into video for this..
-            $query = $writeDB->prepare('select tblsessions.id as sessionid, tblsessions.userid as userid, accesstoken, refreshtoken, useractive, loginattempts, accesstokenexpiry, refreshtokenexpiry from tblsessions, tblusers where tblusers.id = tblsessions.userid and tblsessions.id = :sessionid and tblsessions.accesstoken = :accesstoken and tblsessions.refreshtoken = :refreshtoken');
+            $query = $writeDB->prepare('select sessions.id as sessionid, sessions.userid as userid, accesstoken, refreshtoken, useractive, loginattempts, accesstokenexpiry, refreshtokenexpiry from sessions, users where users.id = sessions.userid and sessions.id = :sessionid and sessions.accesstoken = :accesstoken and sessions.refreshtoken = :refreshtoken');
             $query->bindParam(':sessionid', $sessionid, PDO::PARAM_INT);
             $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
             $query->bindParam(':refreshtoken', $refreshtoken, PDO::PARAM_STR);
@@ -199,7 +203,7 @@ if(array_key_exists("sessionid", $_GET)){
             $access_token_expiry_seconds = 1200; //20 mins
             $refresh_token_expiry_seconds = 1209600; //14 days
 
-            $query = $writeDB->prepare('update tblsessions set accesstoken = :accesstoken, accesstokenexpiry = date_add(NOW(), INTERVAL :accesstokenexpiryseconds SECOND), refreshtoken = :refreshtoken, refreshtokenexpiry = date_add(NOW(), INTERVAL :refreshtokenexpiryseconds SECOND) where id = :sessionid and userid = :userid and accesstoken = :returnedaccesstoken and refreshtoken = :returnedrefreshtoken');
+            $query = $writeDB->prepare('update sessions set accesstoken = :accesstoken, accesstokenexpiry = date_add(NOW(), INTERVAL :accesstokenexpiryseconds SECOND), refreshtoken = :refreshtoken, refreshtokenexpiry = date_add(NOW(), INTERVAL :refreshtokenexpiryseconds SECOND) where id = :sessionid and userid = :userid and accesstoken = :returnedaccesstoken and refreshtoken = :returnedrefreshtoken');
 
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->bindParam(':sessionid', $returned_sessionid, PDO::PARAM_INT);
@@ -299,12 +303,12 @@ if(array_key_exists("sessionid", $_GET)){
     }
 
     //check on mandatory fields.
-    if(!isset($jsonData->username) || !isset($jsonData->password)){
+    if(!isset($jsonData->email) || !isset($jsonData->password)){
         $response = new Response();
         $response->setHttpStatusCode(400); //request method not allowed
         $response->setSuccess(false);
 
-        (!isset($jsonData->username) ? $response->addMessage("Username not supplied") : false);
+        (!isset($jsonData->email) ? $response->addMessage("Email address not supplied") : false);
         (!isset($jsonData->password) ? $response->addMessage("Password not supplied") : false);
 
         $response->send();
@@ -312,13 +316,13 @@ if(array_key_exists("sessionid", $_GET)){
     }
 
     //make sure data supplied in correct format
-    if(strlen($jsonData->username) < 1 || strlen($jsonData->username) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255){
+    if(strlen($jsonData->email) < 1 || strlen($jsonData->email) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255){
         $response = new Response();
         $response->setHttpStatusCode(400); //request method not allowed
         $response->setSuccess(false);
 
-        (strlen($jsonData->username) < 1 ? $response->addMessage("Username cannot be blank") : false);
-        (strlen($jsonData->username) > 255 ? $response->addMessage("Username cannot be more than 255 characters") : false);
+        (strlen($jsonData->username) < 1 ? $response->addMessage("Email cannot be blank") : false);
+        (strlen($jsonData->username) > 255 ? $response->addMessage("Email cannot be more than 255 characters") : false);
         (strlen($jsonData->password) < 1 ? $response->addMessage("Password cannot be blank") : false);
         (strlen($jsonData->password) > 255 ? $response->addMessage("Password cannot be more than 255 characters") : false);
 
@@ -326,14 +330,16 @@ if(array_key_exists("sessionid", $_GET)){
         exit();
     }
 
+    /** TODO - add email verification */
+
     //attempt to retrieve row based on username
     try{
 
-        $username = $jsonData->username;
+        $email = $jsonData->email;
         $password = $jsonData->password;
 
-        $query = $writeDB->prepare('select id, fullname, username, password, useractive, loginattempts from tblusers where username = :username');
-        $query->bindParam(':username', $username, PDO::PARAM_STR);
+        $query = $writeDB->prepare('select id, fullname, email, password, useractive, loginattempts from users where email = :email');
+        $query->bindParam(':email', $email, PDO::PARAM_STR);
         $query->execute();
 
         $rowCount = $query->rowCount();
@@ -343,7 +349,7 @@ if(array_key_exists("sessionid", $_GET)){
             $response = new Response();
             $response->setHttpStatusCode(401); //unauthorised
             $response->setSuccess(false);
-            $response->addMessage("Username / Password is incorrect");
+            $response->addMessage("Email / Password is incorrect");
             $response->send();
             exit();
         }
@@ -352,7 +358,7 @@ if(array_key_exists("sessionid", $_GET)){
 
         $returned_id = $row['id'];
         $returned_fullname = $row['fullname'];
-        $returned_username = $row['username'];
+        $returned_email = $row['email'];
         $returned_password = $row['password'];
         $returned_useractive = $row['useractive'];
         $returned_loginattempts = $row['loginattempts'];
@@ -380,7 +386,7 @@ if(array_key_exists("sessionid", $_GET)){
         //validate the password
         if(!password_verify($password, $returned_password)){
 
-            $query = $writeDB->prepare('update tblusers set loginattempts = loginattempts+1 where id = :id');
+            $query = $writeDB->prepare('update users set loginattempts = loginattempts+1 where id = :id');
             $query->bindParam(':id', $returned_id, PDO::PARAM_INT);
             $query->execute();
 
@@ -416,11 +422,11 @@ if(array_key_exists("sessionid", $_GET)){
 
         /* transactions are atomic, do both queries but don't save until it's commited */
         $writeDB->beginTransaction();
-        $query = $writeDB->prepare('update tblusers set loginattempts = 0 where id = :id'); //set login attempts back to 0
+        $query = $writeDB->prepare('update users set loginattempts = 0 where id = :id'); //set login attempts back to 0
         $query->bindParam(':id', $returned_id, PDO::PARAM_INT);
         $query->execute();
 
-        $query = $writeDB->prepare('insert into tblsessions (userid, accesstoken, accesstokenexpiry, refreshtoken, refreshtokenexpiry) values (:userid, :accesstoken, date_add(NOW(), INTERVAL :accesstokenexpiryseconds SECOND), :refreshtoken, date_add(NOW(), INTERVAL :refreshtokenexpiryseconds SECOND))');
+        $query = $writeDB->prepare('insert into sessions (userid, accesstoken, accesstokenexpiry, refreshtoken, refreshtokenexpiry) values (:userid, :accesstoken, date_add(NOW(), INTERVAL :accesstokenexpiryseconds SECOND), :refreshtoken, date_add(NOW(), INTERVAL :refreshtokenexpiryseconds SECOND))');
         $query->bindParam(':userid', $returned_id, PDO::PARAM_INT);
         $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
         $query->bindParam(':accesstokenexpiryseconds', $access_token_expiry_seconds, PDO::PARAM_INT);
