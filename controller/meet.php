@@ -141,58 +141,65 @@ if(array_key_exists("meetid", $_GET)) {
          */
 
         try {
-            /** TODO - check on this MySQL Statement
+            /*
              *  add auth to the end when ready
              */
 
-            /** TODO -- finish this bit of logic off, committed 09/06/20 */
-            //validate that the user logged in is an actual attendee for this meet
-            $query = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid and userid = :userid');
+
+            $query = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
 
-
-
-
-            $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid');
-            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
-            $query->execute();
-
-            $rc = $query->RowCount();
-
-            if ($rc === 0) {
+            //validate that the meet id exists
+            if($rowCount === 0) {
                 //no meet found with that id
                 $response = new Response();
-                $response->setHttpStatusCode(404);
+                $response->setHttpStatusCode(404); //unauthorised
                 $response->setSuccess(false);
                 $response->addMessage("Meet not found");
                 $response->send();
                 exit();
             }
 
+            /** Ensure that the user is an attendee for this meetup, and add the user ids of
+             * all other users to an attendance array
+             */
+            $validateUser = false;
+            $attendeeArray = array();
 
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                if ($row['userid'] === $returned_userid){
+                    $validateUser = true;
+                }
+                $attendeeArray[] = $row['userid'];
+            }
 
-
-
-
-
-
+            if($validateUser === false){
+                $response = new Response();
+                $response->setHttpStatusCode(401); //unauthorised
+                $response->setSuccess(false);
+                $response->addMessage("Unauthorised user");
+                $response->send();
+                exit();
             }
 
 
+            $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid');
+            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+            $query->execute();
 
-
-
+            $rowCount = $query->RowCount();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], "");
+                $meet->setAttendees($attendeeArray);
                 $meetArray[] = $meet->returnMeetAsArray();
             }
 
             $returnDate = array();
-            $returnData['rows_returned'] = $rc;
+            $returnData['rows_returned'] = $rowCount;
             $returnData['meet'] = $meetArray;
 
             $response = new Response();
@@ -234,8 +241,9 @@ if(array_key_exists("meetid", $_GET)) {
 
             /** TODO Add :userid after auth script is added */
 
-            $query = $writeDB->prepare('delete from meets where id = :meetid');
+            $query = $writeDB->prepare('delete from meets where id = :meetid and organiser = :userid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
@@ -323,6 +331,8 @@ if(array_key_exists("meetid", $_GET)) {
         /** POST request
          *
          *  TODO - create a new meet
+         *
+         *  will need to post the user id into the attendance table otherwise no meet will be found
          *
          */
 

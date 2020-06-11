@@ -11,15 +11,14 @@ class Meet {
     private $_scheduledTime; //a scheduled time that can be adjusted
     private $_finalised; //enum Y or N - has the event been confirmed
     private $_organiser; //a user object of id
-    private $_attendees = array(); //an array of user objects or ids
+    private $_attendees = array(); //an array of userids
     private $_geolocationLon;
     private $_geolocationLat;
     private $_postcode;
     private $_eventType; //eg bar
 
-    /** TODO - add attendees back into constructor - removed for testing Meetcontroller */
 
-    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType){
+    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType, $attendees){
         $this->setId($id);
         $this->setTitle($title);
         $this->setDescription($description);
@@ -30,6 +29,7 @@ class Meet {
         $this->setGeolocationLat($geolocationLat);
         $this->setPostcode($postcode);
         $this->setEventType($eventType);
+        $this->setAttendees($eventType);
     }
 
     /** Getters */
