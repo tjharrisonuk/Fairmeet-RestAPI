@@ -239,8 +239,6 @@ if(array_key_exists("meetid", $_GET)) {
 
         try {
 
-            /** TODO Add :userid after auth script is added */
-
             $query = $writeDB->prepare('delete from meets where id = :meetid and organiser = :userid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
@@ -323,7 +321,7 @@ if(array_key_exists("meetid", $_GET)) {
 
         /** GET request
          *
-         *  TODO - return all meets
+         *  TODO - return all meets - that this user is an attendee of
          */
 
 
@@ -335,14 +333,60 @@ if(array_key_exists("meetid", $_GET)) {
          *  will need to post the user id into the attendance table otherwise no meet will be found
          *
          */
+        try {
+            //ensure that headers are set
+            if($_SERVER['CONTENT_TYPE'] !== 'application/json'){
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage("Content type header not set to JSON");
+                $response->send();
+                exit();
+            }
 
+            /** TODO - find mandatory fields...
+             *  validate on that basis
+             */
+
+            //get raw data
+
+            //try to create new meet based on that. If that fails, it'll throw a meet exception
+
+            //insert query
+
+            //check succesful
+
+            //return the inserted task to the user as per REST API best practice
+
+
+
+        } catch (PDOException $e){
+            error_log("Database query error - ".$e, 0);
+            $response->setHttpStatusCode(500); //incorrect data
+            $response->setSuccess(false);
+            $response->addMessage("Failed to insert Meet into database");
+            $response->send();
+            exit();
+        } catch (MeetException $e){
+            $response = new Response();
+            $response->setHttpStatusCode(400); //incorrect data
+            $response->setSuccess(false);
+            $response->addMessage($e->getMessage());
+            $response->send();
+            exit();
+        }
+
+    } else {
+        /** can't patch into /meets/
+         *  can't delete /meets/
+         */
+        $response = new Response();
+        $response->setHttpStatusCode(400); //bad request
+        $response->setSuccess(false);
+        $response->addMessage("Request method not allowed on this endpoint");
+        $response->send();
+        exit();
     }
-
-
-
-
-    /** endpoint not found  */
-
 
 }
 
