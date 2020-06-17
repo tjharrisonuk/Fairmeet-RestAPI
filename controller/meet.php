@@ -344,13 +344,47 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
-            /** TODO - find mandatory fields...
-             *  validate on that basis
-             */
+
 
             //get raw data
+            $rawPOSTdata = file_get_contents('php://input');
+
+            //make sure that the POST data is valid JSON
+            if(!$jsonData = json_decode($rawPOSTData)){
+                $response = new Response();
+                $response->setHttpStatusCode(400); //bad request
+                $response->setSuccess(false);
+                $response->addMessage("Request body not valid JSON");
+                $response->send();
+                exit();
+            }
+
+            /** TODO - find mandatory fields...
+             *  validate on that basis
+             *  we'll definitely need a title, so putting that in for time being
+             */
+            if(!isset($jsonData->title)){
+                $response = new Response();
+                $response->setHttpStatusCode(400); //bad request
+                $response->setSuccess(false);
+                (!isset($jsonData->title) ? $response->addMessage("Title field is mandatory and must be provided") : false);
+                $response->send();
+                exit();
+            }
 
             //try to create new meet based on that. If that fails, it'll throw a meet exception
+            $newMeet = new Meet(
+                null,
+                $jsonData->title,
+                (isset($jsonData->description) ? $jsonData->description : null),
+                (isset($jsonData->scheduledTime) ? $jsonData->scheduledTime : null),
+                (isset($jsonData->finalised) ? $jsonData->finalised : 'N'),
+                $jsonData->organiser, /** TODO - decide on this should it be up to client?? */
+                null, //no attendees yet for newly posted meet
+
+
+
+            )
 
             //insert query
 

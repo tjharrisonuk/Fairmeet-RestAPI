@@ -5,17 +5,17 @@ class MeetException extends Exception {}
 
 class Meet {
 
-    private $_id; //foreign key in db linking this to userid ??
-    private $_title; //eg. Tom's Birthday Drinks
-    private $_description;
+    private $_id;
+    private $_title; // mandatory
+    private $_description; // optional
     private $_scheduledTime; //a scheduled time that can be adjusted
     private $_finalised; //enum Y or N - has the event been confirmed
-    private $_organiser; //a user object of id
+    private $_organiser; // mandatory
     private $_attendees = array(); //an array of userids
-    private $_geolocationLon;
+    private $_geolocationLon; //optional for geolocation and postcode - can be created without these fields
     private $_geolocationLat;
     private $_postcode;
-    private $_eventType; //eg bar
+    private $_eventType; //eg bar - optional
 
 
     public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType, $attendees){
