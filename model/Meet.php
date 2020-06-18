@@ -10,12 +10,11 @@ class Meet {
     private $_description; // optional
     private $_scheduledTime; //a scheduled time that can be adjusted
     private $_finalised; //enum Y or N - has the event been confirmed
-    private $_organiser; // mandatory
-    private $_attendees = array(); //an array of userids
     private $_geolocationLon; //optional for geolocation and postcode - can be created without these fields
     private $_geolocationLat;
     private $_postcode;
     private $_eventType; //eg bar - optional
+    private $_attendees = array(); //an array of userids
 
 
     public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType, $attendees){

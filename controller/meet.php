@@ -380,17 +380,87 @@ if(array_key_exists("meetid", $_GET)) {
                 (isset($jsonData->scheduledTime) ? $jsonData->scheduledTime : null),
                 (isset($jsonData->finalised) ? $jsonData->finalised : 'N'),
                 $jsonData->organiser, /** TODO - decide on this should it be up to client?? */
-                null, //no attendees yet for newly posted meet
+                (isset($jsonData->geolocationLon) ? $jsonData->geolocationLon : null),
+                (isset($jsonData->geolocationLat) ? $jsonData->geolocationLat : null),
+                (isset($jsonData->postcode) ? $jsonData->postcode : null),
+                (isset($jsonData->eventType) ? $jsonData->eventType : null),
+                null //start with no attendees
+            );
 
+            //get variables back out of the newly created meet object, they will now be validated
+            $title = $newMeet->getTitle();
+            $description = $newMeet->getDescription();
+            $scheduledTime = $newMeet->getScheduledTime();
+            $finalised = $newMeet->getFinalised();
+            $organiser = $newMeet->getOrganiser();
+            $geolocationLon = $newMeet->getGeolocationLon();
+            $geolocationLat = $newMeet->getGeolocationLat();
+            $postcode = $newMeet->getPostCode();
+            $eventType = $newMeet->getEventType();
 
+            //insert into database
+            $query = $writeDB->prepare('insert into meets (title, description, scheduledTime, finalised, organiser, geoLocationLon, geoLocationLat, postcode, eventType) values (:title, :description, STR_TO_DATE(:scheduledTime, \'%d/%m/%Y %H:%i\'), :organiser, :geoLocationLon, geoLocationLat, :postcode, :eventType)');
+            $query->bindParam(':title', $title, PDO::PARAM_STR);
+            $query->bindParam(':description', $description, PDO::PARAM_STR);
+            $query->bindParam(':scheduledTime', $scheduledTime, PDO::PARAM_STR);
+            $query->bindParam(':finalised', $finalised, PDO::PARAM_STR);
+            $query->bindParam(':organiser', $returned_userid, PDO::PARAM_STR);
+            $query->bindParam(':geolocationLon', $geolocationLon, PDO::PARAM_STR);
+            $query->bindParam(':geolocationLat', $geolocationLat, PDO::PARAM_STR);
+            $query->bindParam(':postcode', $postcode, PDO::PARAM_STR);
+            $query->bindParam(':eventType', $eventType, PDO::PARAM_STR);
 
-            )
+            $query->execute();
 
-            //insert query
+            $rowCount = $query->rowCount();
 
-            //check succesful
+            if($rowCount == 0){
+                $response = new Response();
+                $response->setHttpStatusCode(500); //server issue
+                $response->setSuccess(false);
+                $response->addMessage("Failed to create meet");
+                $response->send();
+                exit();
+            }
 
             //return the inserted task to the user as per REST API best practice
+            $lastMeetID = $writeDB->lastInsertId();
+
+            $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :lastMeetID and organiser = :organiser');
+            $query->bindParam(':lastMeetID', $lastMeetID, PDO::PARAM_INT);
+            $query->bindParam(':organiser', $returned_userid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if($rowCount == 0){
+                $response = new Response();
+                $response->setHttpStatusCode(500); //server error
+                $response->setSuccess(false);
+                $response->addMessage("Failed to retrieve meet after creation");
+                $response->send();
+                exit();
+            }
+
+            $meetArray = array();
+
+            while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], $row;['attendees']);
+                $meetArray[] = $meet->returnMeetAsArray();
+            }
+
+
+            $returnData = array();
+            $returnData['rows_returned'] = $rowCount;
+            $returnData['tasks'] = $taskArray;
+
+            $response = new Response();
+            $response->setHttpStatusCode(201); //successfully created
+            $response->setSuccess(true);
+            $response->addMessage("Meet created");
+            $response->setData($returnData);
+            $response->send();
+            exit();
 
 
 
