@@ -325,12 +325,12 @@ if(array_key_exists("meetid", $_GET)) {
          */
 
 
+
+
     } else if ($_SERVER['REQUEST_METHOD'] === 'POST'){
         /** POST request
-         *
-         *  TODO - create a new meet
-         *
-         *  will need to post the user id into the attendance table otherwise no meet will be found
+         *  Create a new meet
+         *  Add entry to the attendance table - organiser should be attending meet up event
          *
          */
         try {
