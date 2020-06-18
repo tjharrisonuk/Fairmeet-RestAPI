@@ -112,7 +112,7 @@ class Meet {
 
     public function setScheduledTime($scheduledTime){
 
-        if(($scheduledTime !== null) && !date_create_from_format('d/m/Y H:i', $scheduledTime) || date_format(date_create_from_format('d/m/Y H:i', $scheduledTime), 'd/m/Y H:i') != $scheduledTime) {
+        if(($scheduledTime !== null) && date_format(date_create_from_format('d/m/Y H:i', $scheduledTime), 'd/m/Y H:i') != $scheduledTime){
             throw new MeetException("Meet deadline date and time error");
         }
 

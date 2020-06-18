@@ -7,6 +7,7 @@ RewriteCond %{REQUEST_FILENAME} !-f
 
 RewriteRule ^meets/([0-9]+)$ controller/meet.php?meetid=$1 [L]
 RewriteRule ^users$ controller/users.php [L]
+RewriteRule ^meets$ controller/meet.php [L]
 
 RewriteRule ^sessions/([0-9]+)$ controller/sessions.php?sessionid=$1 [L]
 RewriteRule ^sessions$ controller/sessions.php [L]

@@ -344,13 +344,11 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
-
-
             //get raw data
-            $rawPOSTdata = file_get_contents('php://input');
+            $rawPostData = file_get_contents('php://input');
 
             //make sure that the POST data is valid JSON
-            if(!$jsonData = json_decode($rawPOSTData)){
+            if(!$jsonData = json_decode($rawPostData)){
                 $response = new Response();
                 $response->setHttpStatusCode(400); //bad request
                 $response->setSuccess(false);
@@ -379,7 +377,7 @@ if(array_key_exists("meetid", $_GET)) {
                 (isset($jsonData->description) ? $jsonData->description : null),
                 (isset($jsonData->scheduledTime) ? $jsonData->scheduledTime : null),
                 (isset($jsonData->finalised) ? $jsonData->finalised : 'N'),
-                $jsonData->organiser, /** TODO - decide on this should it be up to client?? */
+                $returned_userid, /** TODO - decide on this should it be up to client?? */
                 (isset($jsonData->geolocationLon) ? $jsonData->geolocationLon : null),
                 (isset($jsonData->geolocationLat) ? $jsonData->geolocationLat : null),
                 (isset($jsonData->postcode) ? $jsonData->postcode : null),
@@ -399,12 +397,12 @@ if(array_key_exists("meetid", $_GET)) {
             $eventType = $newMeet->getEventType();
 
             //insert into database
-            $query = $writeDB->prepare('insert into meets (title, description, scheduledTime, finalised, organiser, geoLocationLon, geoLocationLat, postcode, eventType) values (:title, :description, STR_TO_DATE(:scheduledTime, \'%d/%m/%Y %H:%i\'), :organiser, :geoLocationLon, geoLocationLat, :postcode, :eventType)');
+            $query = $writeDB->prepare('insert into meets (id, title, description, scheduledTime, finalised, geolocationLon, geolocationLat, postcode, eventType, organiser) values (null, :title, :description, STR_TO_DATE(:scheduledTime, \'%d/%m/%Y %H:%i\'), :finalised, :geolocationLon, :geolocationLat, :postcode, :eventType, :organiser)');
             $query->bindParam(':title', $title, PDO::PARAM_STR);
             $query->bindParam(':description', $description, PDO::PARAM_STR);
             $query->bindParam(':scheduledTime', $scheduledTime, PDO::PARAM_STR);
             $query->bindParam(':finalised', $finalised, PDO::PARAM_STR);
-            $query->bindParam(':organiser', $returned_userid, PDO::PARAM_STR);
+            $query->bindParam(':organiser', $returned_userid, PDO::PARAM_STR); //set organiser to the current user
             $query->bindParam(':geolocationLon', $geolocationLon, PDO::PARAM_STR);
             $query->bindParam(':geolocationLat', $geolocationLat, PDO::PARAM_STR);
             $query->bindParam(':postcode', $postcode, PDO::PARAM_STR);
@@ -445,14 +443,14 @@ if(array_key_exists("meetid", $_GET)) {
             $meetArray = array();
 
             while($row = $query->fetch(PDO::FETCH_ASSOC)){
-                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], $row;['attendees']);
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
                 $meetArray[] = $meet->returnMeetAsArray();
             }
 
 
             $returnData = array();
             $returnData['rows_returned'] = $rowCount;
-            $returnData['tasks'] = $taskArray;
+            $returnData['meet'] = $meetArray;
 
             $response = new Response();
             $response->setHttpStatusCode(201); //successfully created
@@ -463,9 +461,10 @@ if(array_key_exists("meetid", $_GET)) {
             exit();
 
 
-
         } catch (PDOException $e){
             error_log("Database query error - ".$e, 0);
+            echo $e; //** TODO remove when not needed */
+            $response = new Response();
             $response->setHttpStatusCode(500); //incorrect data
             $response->setSuccess(false);
             $response->addMessage("Failed to insert Meet into database");
