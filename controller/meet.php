@@ -321,13 +321,73 @@ if(array_key_exists("meetid", $_GET)) {
 
         /** GET request
          *
-         *  TODO - return all meets - that this user is an attendee of
+         *  TODO - return all meets - that this user is organsing
+         *  TODO - need a seperate REST method somewhere for getting all meets they are attending
          */
+            //first need to get a list of all meets the user is an attendee of
+            //so query the attendance table.
 
+            /* TODO - make this a transaction as we're going to query the db twice, on different tables... or maybe join */
+            /*$query = $readDB->prepare('select meetid from attendance where userid = :userid');
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->execute();
 
+            $userattendsArray = array();
 
+            while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                $userattendsArray[] = $row['meetid'];
+            }
 
-    } else if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            foreach ($userattendsArray as $value){
+                echo $value;
+            }*/
+
+            /** for now just return a list of meets that the user is the organiser of */
+            try {
+
+                $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where organiser = :userid');
+                $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+                $meetArray = array();
+
+                while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                    $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
+                    $meetArray[] = $meet->returnMeetAsArray();
+                }
+
+                $returnData = array();
+                $returnData['rows_returned'] = $rowCount;
+                $returnData['meets'] = $meetArray;
+
+                $response = new Response();
+                $response->setHttpStatusCode(200);
+                $response->setSuccess(true);
+                $response->toCache(true);
+                $response->setData($returnData);
+                $response->send();
+                exit();
+
+            } catch (MeetException $e){
+
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage($e->getMessage());
+            $response->send();
+            exit();
+
+            } catch (PDOException $e){
+            error_log("Database query error - ".$e, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage("Failed to get meets");
+            $response->send();
+            exit();
+        }
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST'){
         /** POST request
          *  Create a new meet
          *  Add entry to the attendance table - organiser should be attending meet up event
