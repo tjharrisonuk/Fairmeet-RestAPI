@@ -150,7 +150,7 @@ class Meet {
 
     public function setAttendees($attendees){
         /**
-         * TODO - validation on this
+         * TODO - validation on this -- should it really be modelled here??
          *
          *  must be an array of users??
          */
