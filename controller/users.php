@@ -58,7 +58,7 @@ if(!$jsonData = json_decode($rawPostData)){
 
 
 //make sure that mandatory fields are set
-if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->password)){
+if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->password) || !isset($jsonData->postcode)){
     $response = new Response();
     $response->setHttpStatusCode(400); //hasn't supplied mandatory
     $response->setSuccess(false);
@@ -66,14 +66,16 @@ if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->
     (!isset($jsonData->fullname) ? $response->addMessage("Full name not supplied") : false);
     (!isset($jsonData->email) ? $response->addMessage("Email not supplied") : false);
     (!isset($jsonData->password) ? $response->addMessage("Password not supplied") : false);
+    (!isset($jsonData->postcode) ? $response->addMessage("Postcode not supplied") : false);
 
     $response->send();
     exit();
 }
 //validate that json data has correct length)
-if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strlen($jsonData->email) < 1 || strlen($jsonData->email) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255){
+//reminder ... postcode can't be longer than 8 chars
+if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strlen($jsonData->email) < 1 || strlen($jsonData->email) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255 || strlen($jsonData->postcode) < 1 || strlen($jsonData->postcode) > 8){
     $response = new Response();
-    $response->setHttpStatusCode(400); //request method not allowed
+    $response->setHttpStatusCode(400); //bad request,
     $response->setSuccess(false);
 
     (strlen($jsonData->fullname) < 1 ? $response->addMessage("Full name cannot be blank") : false);
@@ -84,6 +86,9 @@ if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strle
 
     (strlen($jsonData->password) < 1 ? $response->addMessage("Password cannot be blank") : false);
     (strlen($jsonData->password) > 255 ? $response->addMessage("Password cannot be over 255 characters") : false);
+
+    (strlen($jsonData->postcode) < 1 ? $response->addMessage("Postcode cannot be blank") : false);
+    (strlen($jsonData->postcode) > 8 ? $response->addMessage("Postcode cannot be over 8 characters") : false);
 
     $response->send();
     exit();
@@ -102,10 +107,11 @@ if(!filter_var($jsonData->email, FILTER_VALIDATE_EMAIL)){
 //get rid of whitespace
 $fullname = trim($jsonData->fullname);
 $email = trim($jsonData->email);
+$postcode = trim($jsonData->postcode);
 //space can be valid char in passwords
 $password = $jsonData->password;
 
-//query db to see if username is already taken
+//query db to see if email address is already taken
 try{
 
     $query = $writeDB->prepare('select id from users where email = :email');
@@ -127,10 +133,11 @@ try{
     //hash the password
     $hashed_password = password_hash($password, PASSWORD_DEFAULT); //always uses the most up to date hashing algorithm supported by PHP
 
-    $query = $writeDB->prepare('insert into users (fullname, email, password) values (:fullname, :email, :password)');
+    $query = $writeDB->prepare('insert into users (fullname, email, password, postcode) values (:fullname, :email, :password, :postcode)');
     $query->bindParam('fullname', $fullname, PDO::PARAM_STR);
     $query->bindParam('email', $email, PDO::PARAM_STR);
     $query->bindParam('password', $hashed_password, PDO::PARAM_STR);
+    $query->bindParam('postcode', $postcode, PDO::PARAM_STR);
     $query->execute();
 
     $rowCount = $query->rowCount();
@@ -151,6 +158,7 @@ try{
     $returnData['user_id'] = $lastUserID;
     $returnData['fullname'] = $fullname;
     $returnData['email'] = $email;
+    $returnData['postcode'] = $postcode;
 
     $response = new Response();
     $response->setHttpStatusCode(201); //creation
