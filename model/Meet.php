@@ -197,8 +197,6 @@ class Meet {
         //add an attendee to the array
         //add meetid and us
         //may need to be worked out on client side
-
-
     }
 
     public function removeAttendee($attendee){

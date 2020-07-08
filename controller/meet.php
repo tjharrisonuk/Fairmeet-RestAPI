@@ -141,10 +141,6 @@ if(array_key_exists("meetid", $_GET)) {
          */
 
         try {
-            /*
-             *  add auth to the end when ready
-             */
-
 
             $query = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
