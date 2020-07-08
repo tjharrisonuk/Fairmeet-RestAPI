@@ -1,6 +1,6 @@
 <?php
 
-require_once ('Meet.php');
+require_once('../model/Meet.php');
 use fairmeet\model\Meet;
 use fairmeet\model\MeetException;
 
