@@ -283,8 +283,238 @@ if(array_key_exists("meetid", $_GET)) {
          *
          */
 
-        //do nothing
+        try {
 
+            //check that we're dealing with json data
+            if ($_SERVER['CONTENT_TYPE'] !== 'application/json') {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage("Content Type header not set to json");
+                $response->send();
+                exit();
+            }
+
+            $rawPatchData = file_get_contents('php://input');
+
+            //try to decode patch data as json
+            if (!$jsonData = json_decode($rawPatchData)) {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage("Request body not valid JSON");
+                $response->send();
+                exit();
+            }
+
+            $title_updated = false;
+            $description_updated = false;
+            $scheduledTime_updated = false;
+            $finalised_updated = false;
+            $geolocationLon_updated = false;
+            $geolocationLat_updated = false;
+            $postcode_updated = false;
+            $eventType_updated = false;
+
+
+            //need to dynamically build query depending on which fields need to be updated
+            $queryFields = "";
+
+            if (isset($jsonData->title)) {
+                $title_updated = true;
+                $queryFields .= "title = :title, ";
+            }
+
+            if (isset($jsonData->description)) {
+                $description_updated = true;
+                $queryFields .= "description = :description, ";
+            }
+
+            if (isset($jsonData->scheduledTime)) {
+                $scheduledTime_updated = true;
+                $queryFields .= "scheduledTime = STR_TO_DATE(:deadline, '%d/%m/%Y %H:%i), ";
+            }
+
+            if (isset($jsonData->finalised)) {
+                $finalised_updated = true;
+                $queryFields .= "finalised = :finalised, ";
+            }
+
+            if (isset($jsonData->geolocationLon)) {
+                $geolocationLon_updated = true;
+                $queryFields .= "geolocationLon = :geolocationLon, ";
+            }
+
+            if (isset($jsonData->geolocationLat)) {
+                $geolocationLat_updated = true;
+                $queryFields .= "geolocationLat = :geolocationLat, ";
+            }
+
+            if (isset($jsonData->postcode)) {
+                $postcode_updated = true;
+                $queryFields .= "postcode= :postcode, ";
+            }
+
+            if (isset($jsonData->eventType)) {
+                $eventType_updated = true;
+                $queryFields .= "eventType= :eventType, ";
+            }
+
+            //remove the last comma and space so that this will be a valid mySQL query
+            $queryFields = rtrim($queryFields, ", ");
+
+            //if client hasn't updated anything
+            if ($title_updated === false && $description_updated == false && $scheduledTime_updated == false && $finalised_updated == false && $geolocationLon_updated == false && $geolocationLat_updated == false && $postcode_updated == false && $eventType_updated == false) {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage("No meet fields provided");
+                $response->send();
+                exit();
+            }
+
+            //get the original meet from the database (assumings its there and the user requesting is the organiser)
+            $query = $writeDb->prepare('select id, title, description, DATE_FORMAT(finalised, "%d/%m/%Y %H:%i") as scheduledTime, finalised, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid and organiser = :userid');
+            $query->bindParam(':meetid', $taskid, PDO::PARAM_INT);
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if ($rowCount == 0) {
+                $response = new Response();
+                $response->setHttpStatusCode(404); //not found
+                $response->setSuccess(false);
+                $response->addMessage("No meet found to update");
+                $response->send();
+                exit();
+            }
+
+
+            while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], $row['organiser']);
+                $meetArray[] = $meet->returnTasksAsArray();
+            }
+
+            //start building the update query
+            $queryString = 'update meets set '.$queryFields." where id = :meetid and userid = :userid";
+            $query = $writeDb->prepare($queryString);
+
+            if($title_updated === true) {
+                //set and then get back out, so its gone through validation
+                //might have had some formatting etc. as well.
+                $meet->setTitle($jsonData->title);
+                $up_title = $meet->getTitle();
+                $query->bindParam(':title', $up_title, PDO::PARAM_STR);
+            }
+
+            if($description_updated === true){
+                $task->setDescription($jsonData->description);
+                $up_description = $meet->getDescription();
+                $query->bindParam(':description', $up_description, PDO::PARAM_STR);
+            }
+
+            if($scheduledTime_updated === true){
+                $task->setSheduledTime($jsonData->scheduledTime);
+                $up_scheduledTime = $meet->getScheduledTime();
+                $query->bindParam(':deadline', $up_scheduledTime, PDO::PARAM_STR);
+            }
+
+            if($finalised_updated === true){
+                $meet->setFinalised($jsonData->finalised);
+                $up_finalised = $meet->getFinalised();
+                $query->bindParam(':finalised', $up_finalised, PDO::PARAM_STR);
+            }
+
+            if($geolocationLon_updated === true){
+                $meet->setGeolocationLon($jsonData->geolocationLon);
+                $up_geolocationLon = $meet->getGeolocationLon();
+                $query->bindParam(':geolocationLon', $up_geolocationLon, PDO::PARAM_STR);
+            }
+
+            if($geolocationLat_updated === true) {
+                $meet->setGeolocationLat($jsonData->geolocationLat);
+                $up_geolocationLat = $meet->getGeolocationLat();
+                $query->bindParam(':geolocationLat', $up_geolocationLat, PDO::PARAM_STR);
+            }
+
+            //postcode //eventType
+            if($postcode_updated === true){
+                $meet->setPostcode($jsonData->postcode);
+                $up_postcode = $meet->getPostCode();
+                $query->bindParam(':postcode', $up_postcode, PDO::PARAM_STR);
+            }
+
+            if($eventType_updated === true){
+                $meet->setEventType($jsonData->eventType);
+                $up_eventType = $meet->getEventType();
+                $query->bindParam(':eventType', $up_eventType, PDO::PARAM_STR);
+            }
+
+            $query->bindParam(':meetid', $taskid, PDO::PARAM_INT);
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if($rowCount === 0){
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage("Meet not updated");
+                $response->send();
+                exit();
+            }
+
+            //get the newly updated meet event out of the database and return it to the user
+            $query = $writeDb->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised from meets where id = :meetid and organiser = :userid');
+            $query->bindParam(':taskid', $taskid, PDO::PARAM_INT);
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if($rowCount === 0){
+                $response = new Response();
+                $response->setHttpStatusCode(404);
+                $response->setSuccess(false);
+                $response->addMessage("No task found after update");
+                $response->send();
+                exit();
+            }
+
+            $returnData = array();
+            $returnData['rows_returned'] = $rowCount;
+            $returnData['tasks'] = $taskArray;
+
+            $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setSuccess(true);
+            $response->addMessage('Task updated');
+            $response->setData($returnData);
+            $response->send();
+            exit();
+
+
+
+
+
+        } catch (MeetException $e){
+            $response = new Response();
+            $response->setHttpStatusCode(400);
+            $response->setSuccess(false);
+            $response->addMessage($e->getMessage());
+            $response->send();
+            exit();
+        } catch (PDOException $e){
+            error_log("Database Query Error - ".$e, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500); //server error
+            $response->setSuccess(false);
+            $response->addMessage("Failed to update meet - check your data for errors");
+            $response->send();
+            exit();
+        }
 
     } else {
 
