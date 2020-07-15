@@ -17,7 +17,7 @@ class Meet {
     //private $_attendees = array(); //an array of userids
 
 
-    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType, $attendees){
+    public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType){ //attendees
         $this->setId($id);
         $this->setTitle($title);
         $this->setDescription($description);
@@ -120,13 +120,13 @@ class Meet {
 
     }
 
-    /*public function setOrganiser($organiser){
+    public function setOrganiser($organiser){
         /**  TODO - validation on this
          *
          *  //should it be organiser id
-
+        */
         $this->_organiser = $organiser;
-    }*/
+    }
 
     public function setFinalised($finalised){
 
@@ -155,7 +155,7 @@ class Meet {
          *  must be an array of users??
 
         $this->_attendees = $attendees;
-    }/*
+    }*/
 
     public function setGeolocationLon($geolocationLon){
         /** TODO - validation on this
@@ -197,15 +197,15 @@ class Meet {
         //add an attendee to the array
         //add meetid and us
         //may need to be worked out on client side
-    }/*
+    //}
 
-    public function removeAttendee($attendee){
+    /*public function removeAttendee($attendee){
         //remove an attendee from the array
         /**
          * TODO - removeAttendee functionality for meet
          * may need to be worked out on client side
          */
-    }
+    //}
 
     public function returnMeetAsArray(){
         $meet = array();

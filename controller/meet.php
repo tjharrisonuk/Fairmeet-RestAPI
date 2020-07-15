@@ -375,7 +375,7 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             //get the original meet from the database (assumings its there and the user requesting is the organiser)
-            $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(finalised, "%d/%m/%Y %H:%i") as scheduledTime, finalised, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid and organiser = :userid');
+            $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid and organiser = :userid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->execute();
@@ -392,12 +392,12 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             while($row = $query->fetch(PDO::FETCH_ASSOC)){
-                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], $row['organiser']);
-                $meetArray[] = $meet->returnTasksAsArray();
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
+                $meetArray[] = $meet->returnMeetAsArray();
             }
 
             //start building the update query
-            $queryString = 'update meets set '.$queryFields." where id = :meetid and userid = :userid";
+            $queryString = 'update meets set '.$queryFields." where id = :meetid and organiser = :userid";
             $query = $writeDB->prepare($queryString);
 
             if($title_updated === true) {
@@ -461,14 +461,14 @@ if(array_key_exists("meetid", $_GET)) {
                 $response = new Response();
                 $response->setHttpStatusCode(400);
                 $response->setSuccess(false);
-                $response->addMessage("Meet not updated");
+                $response->addMessage("Meet not updated - no ");
                 $response->send();
                 exit();
             }
 
             //Get the newly updated meet event out of the database and return it to the user
 
-            $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised from meets where id = :meetid and organiser = :userid');
+            $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid and organiser = :userid');
             $query->bindParam(':taskid', $taskid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->execute();
@@ -511,8 +511,10 @@ if(array_key_exists("meetid", $_GET)) {
             $response->addMessage($e->getMessage());
             $response->send();
             exit();
+
         } catch (PDOException $e){
             error_log("Database Query Error - ".$e, 0);
+            echo $e;
             $response = new Response();
             $response->setHttpStatusCode(500); //server error
             $response->setSuccess(false);
