@@ -451,7 +451,7 @@ if(array_key_exists("meetid", $_GET)) {
                 $query->bindParam(':eventType', $up_eventType, PDO::PARAM_STR);
             }
 
-            $query->bindParam(':meetid', $taskid, PDO::PARAM_INT);
+            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->execute();
 
@@ -466,8 +466,9 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
-            //get the newly updated meet event out of the database and return it to the user
-            $query = $writeDb->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised from meets where id = :meetid and organiser = :userid');
+            //Get the newly updated meet event out of the database and return it to the user
+
+            query = $writeDb->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised from meets where id = :meetid and organiser = :userid');
             $query->bindParam(':taskid', $taskid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->execute();
@@ -483,20 +484,24 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
+            $meetArray = array();
+
+            while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], $row['organiser']);
+                $meetArray[] = $meet->returnMeetsAsArray();
+            }
+
             $returnData = array();
             $returnData['rows_returned'] = $rowCount;
-            $returnData['tasks'] = $taskArray;
+            $returnData['meets'] = $meetArray;
 
             $response = new Response();
             $response->setHttpStatusCode(200);
             $response->setSuccess(true);
-            $response->addMessage('Task updated');
+            $response->addMessage('Meet updated');
             $response->setData($returnData);
             $response->send();
             exit();
-
-
-
 
 
         } catch (MeetException $e){
