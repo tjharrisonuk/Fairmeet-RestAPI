@@ -14,7 +14,7 @@ class Meet {
     private $_geolocationLat;
     private $_postcode;
     private $_eventType; //eg bar - optional
-    private $_attendees = array(); //an array of userids
+    //private $_attendees = array(); //an array of userids
 
 
     public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType, $attendees){
@@ -28,7 +28,7 @@ class Meet {
         $this->setGeolocationLat($geolocationLat);
         $this->setPostcode($postcode);
         $this->setEventType($eventType);
-        $this->setAttendees($eventType);
+        //$this->setAttendees($eventType);
     }
 
     /** Getters */
@@ -120,13 +120,13 @@ class Meet {
 
     }
 
-    public function setOrganiser($organiser){
+    /*public function setOrganiser($organiser){
         /**  TODO - validation on this
          *
          *  //should it be organiser id
-         */
+
         $this->_organiser = $organiser;
-    }
+    }*/
 
     public function setFinalised($finalised){
 
@@ -148,14 +148,14 @@ class Meet {
 
     }
 
-    public function setAttendees($attendees){
+    /*public function setAttendees($attendees){
         /**
          * TODO - validation on this -- should it really be modelled here??
          *
          *  must be an array of users??
-         */
+
         $this->_attendees = $attendees;
-    }
+    }/*
 
     public function setGeolocationLon($geolocationLon){
         /** TODO - validation on this
@@ -191,15 +191,13 @@ class Meet {
      * Class Methods
      */
 
-    public function addAttendee($attendee){
+    /*public function addAttendee($attendee){
        /** TODO - addAttendee functionality for meet */
 
         //add an attendee to the array
         //add meetid and us
         //may need to be worked out on client side
-
-
-    }
+    }/*
 
     public function removeAttendee($attendee){
         //remove an attendee from the array
@@ -221,8 +219,8 @@ class Meet {
         $meet['geolocationLat'] = $this->getGeolocationLat();
         $meet['postcode'] = $this->getPostcode();
         $meet['eventType'] = $this->getEventType();
-        $meet['attendees'] = $this->getAttendees(); //remember this is an array too
-
+        /*$meet['attendees'] = $this->getAttendees(); //remember this is an array too
+        */
         return $meet;
     }
 
