@@ -121,17 +121,20 @@ class Meet {
     }
 
     public function setOrganiser($organiser){
-        /**  TODO - validation on this
+        /**
+         * must be an integer as this is a passed in userid
          *
-         *  //should it be organiser id
         */
+        if(!is_int($organiser)){
+            throw new MeetException("Not a valid organiser");
+        }
         $this->_organiser = $organiser;
     }
 
     public function setFinalised($finalised){
 
         if(strtoupper($finalised) !== 'Y' && strtoupper($finalised) !== 'N'){
-            throw new TaskException("Meet finalised must be Y or N");
+            throw new MeetException("Meet finalised must be Y or N");
         }
 
         $this->_finalised = $finalised;

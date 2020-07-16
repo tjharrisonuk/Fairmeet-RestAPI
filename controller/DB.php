@@ -30,7 +30,6 @@ class DB {
             self::$readDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             self::$readDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         }
-
         return self::$readDBConnection;
     }
 

@@ -107,7 +107,7 @@ try {
 }
 //end auth script
 
-//if(array_key_exists("attendance"))
+
 
 /** if we have a meeting id
  *
@@ -116,6 +116,8 @@ try {
  */
 if(array_key_exists("meetid", $_GET)) {
 
+    //if(array_key_exists("attendance"))
+    //attendance functionality should be built within this endpoint.
 
     $meetid = $_GET['meetid'];
 
@@ -140,11 +142,9 @@ if(array_key_exists("meetid", $_GET)) {
          */
 
         try {
-            /*
+            /**
              *  add auth to the end when ready
              */
-
-
             $query = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->execute();
@@ -185,7 +185,7 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
 
-            $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid');
+            $query = $readDB->prepare("select id, title, description, DATE_FORMAT(scheduledTime, '%d/%m/%Y %H:%i') as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid");
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->execute();
 
@@ -247,7 +247,7 @@ if(array_key_exists("meetid", $_GET)) {
 
             if ($rowCount === 0) {
                 $response = new Response();
-                $response->setHttpStatusCode(404); //trying to delete a task that doesn't exist
+                $response->setHttpStatusCode(404); //trying to delete a meet that doesn't exist
                 $response->setSuccess(false);
                 $response->addMessage('Meet not found');
                 $response->send();
@@ -275,10 +275,8 @@ if(array_key_exists("meetid", $_GET)) {
 
         /** PATCH request
          *
-         *  Update a meets details
+         *  Update a meet events details
          *  -- must be the organiser to do this
-         *  -- use this to add attendee to a meet ??
-         *  -- use this to remove an attendee??
          *
          */
 
@@ -333,7 +331,7 @@ if(array_key_exists("meetid", $_GET)) {
 
             if (isset($jsonData->scheduledTime)) {
                 $scheduledTime_updated = true;
-                $queryFields .= "scheduledTime = STR_TO_DATE(:deadline, '%d/%m/%Y %H:%i), ";
+                $queryFields .= "scheduledTime = STR_TO_DATE(:scheduledTime, '%d/%m/%Y %H:%i), ";
             }
 
             if (isset($jsonData->finalised)) {
@@ -375,6 +373,8 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             //get the original meet from the database (assumings its there and the user requesting is the organiser)
+            //select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :lastMeetID and organiser = :organiser'
+
             $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid and organiser = :userid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
@@ -382,7 +382,7 @@ if(array_key_exists("meetid", $_GET)) {
 
             $rowCount = $query->rowCount();
 
-            if ($rowCount == 0) {
+            if ($rowCount === 0) {
                 $response = new Response();
                 $response->setHttpStatusCode(404); //not found
                 $response->setSuccess(false);
@@ -393,7 +393,6 @@ if(array_key_exists("meetid", $_GET)) {
 
             while($row = $query->fetch(PDO::FETCH_ASSOC)){
                 $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
-                $meetArray[] = $meet->returnMeetAsArray();
             }
 
             //start building the update query
@@ -409,15 +408,15 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             if($description_updated === true){
-                $task->setDescription($jsonData->description);
+                $meet->setDescription($jsonData->description);
                 $up_description = $meet->getDescription();
                 $query->bindParam(':description', $up_description, PDO::PARAM_STR);
             }
 
             if($scheduledTime_updated === true){
-                $task->setSheduledTime($jsonData->scheduledTime);
+                $meet->setScheduledTime($jsonData->scheduledTime);
                 $up_scheduledTime = $meet->getScheduledTime();
-                $query->bindParam(':deadline', $up_scheduledTime, PDO::PARAM_STR);
+                $query->bindParam(':scheduledTime', $up_scheduledTime, PDO::PARAM_STR);
             }
 
             if($finalised_updated === true){
@@ -457,29 +456,29 @@ if(array_key_exists("meetid", $_GET)) {
 
             $rowCount = $query->rowCount();
 
-            if($rowCount === 0){
+            if($rowCount == 0){
                 $response = new Response();
                 $response->setHttpStatusCode(400);
                 $response->setSuccess(false);
-                $response->addMessage("Meet not updated - no ");
+                $response->addMessage("Meet not updated");
                 $response->send();
                 exit();
             }
 
             //Get the newly updated meet event out of the database and return it to the user
 
-            $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid and organiser = :userid');
-            $query->bindParam(':taskid', $taskid, PDO::PARAM_INT);
+            $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :meetid and organiser = :userid');
+            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
             $query->execute();
 
             $rowCount = $query->rowCount();
 
-            if($rowCount === 0){
+            if($rowCount == 0){
                 $response = new Response();
                 $response->setHttpStatusCode(404);
                 $response->setSuccess(false);
-                $response->addMessage("No meet found after update");
+                $response->addMessage("No meet found after update".$rowCount);
                 $response->send();
                 exit();
             }
@@ -487,7 +486,7 @@ if(array_key_exists("meetid", $_GET)) {
             $meetArray = array();
 
             while($row = $query->fetch(PDO::FETCH_ASSOC)){
-                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], $row['organiser']);
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
                 $meetArray[] = $meet->returnMeetAsArray();
             }
 
@@ -679,7 +678,7 @@ if(array_key_exists("meetid", $_GET)) {
                 (isset($jsonData->geolocationLat) ? $jsonData->geolocationLat : null),
                 (isset($jsonData->postcode) ? $jsonData->postcode : null),
                 (isset($jsonData->eventType) ? $jsonData->eventType : null),
-                null //start with no attendees
+                /** TODO - seperate out attendance from meet *///null //start with no attendees
             );
 
             //get variables back out of the newly created meet object, they will now be validated
@@ -718,7 +717,7 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
-            //return the inserted task to the user as per REST API best practice
+            //return the inserted meet to the user as per REST API best practice
             $lastMeetID = $writeDB->lastInsertId();
 
             $query = $writeDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where id = :lastMeetID and organiser = :organiser');
