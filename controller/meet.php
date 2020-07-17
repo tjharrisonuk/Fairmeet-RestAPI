@@ -116,9 +116,6 @@ try {
  */
 if(array_key_exists("meetid", $_GET)) {
 
-    //if(array_key_exists("attendance"))
-    //attendance functionality should be built within this endpoint.
-
     $meetid = $_GET['meetid'];
 
     //validate not blank, is numeric
@@ -126,7 +123,7 @@ if(array_key_exists("meetid", $_GET)) {
         $response = new Response();
         $response->setHttpStatusCode(400); //Bad Request
         $response->setSuccess(false);
-        $response->addMessage("Meet Id cannot be blank or must be numeric");
+        $response->addMessage("Meet Id cannot be blank, must be numeric");
         $response->send();
         exit();
     }
@@ -138,7 +135,7 @@ if(array_key_exists("meetid", $_GET)) {
          *
          *  Get the details of a meet
          * -- must be one of the attendees to do this
-         *
+         * -- attendance add / remove in attendance class
          */
 
         try {
@@ -192,8 +189,8 @@ if(array_key_exists("meetid", $_GET)) {
             $rowCount = $query->rowCount();
 
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType'], "");
-                $meet->setAttendees($attendeeArray);
+                $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
+                //$meet->setAttendees($attendeeArray);
                 $meetArray[] = $meet->returnMeetAsArray();
             }
 
