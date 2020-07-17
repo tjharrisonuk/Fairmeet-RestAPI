@@ -275,7 +275,7 @@ if(array_key_exists("meetid", $_GET)) {
 
         /** PATCH request
          *
-         *  Update a meet events details
+         *  Update a meet events details -- requires a meet id
          *  -- must be the organiser to do this
          *
          */
@@ -314,7 +314,6 @@ if(array_key_exists("meetid", $_GET)) {
             $geolocationLat_updated = false;
             $postcode_updated = false;
             $eventType_updated = false;
-
 
             //need to dynamically build query depending on which fields need to be updated
             $queryFields = "";
@@ -540,7 +539,12 @@ if(array_key_exists("meetid", $_GET)) {
 
 } elseif(array_key_exists("attending", $_GET)){
 
-    /** meets/attending */
+    /** meets/attending
+     *
+     * this might need to be in its own endpoint /attending/
+     *
+     */
+    echo "this is the attending endpoint";
 
 
 
