@@ -1,5 +1,7 @@
 <?php
 namespace fairmeet\controller;
+use fairmeet\model\AttendanceList;
+use fairmeet\model\AttendanceListException;
 use fairmeet\model\MeetException;
 use fairmeet\model\Response;
 use fairmeet\controller\DB;
@@ -126,6 +128,118 @@ if(array_key_exists("meetid", $_GET)) {
         $response->addMessage("Meet Id cannot be blank, must be numeric");
         $response->send();
         exit();
+    }
+
+    /** ATTENDANCE FUNCTIONALITY
+     *
+     * GET - no attending value needed - route = /meet.php?meetid={meetid}&attending == /meet/{meetid}/attendance
+     *  returns a list of full names of users attending that meet (possibly their user ids???)
+     *
+     * DELETE - attending value mandatory - route = /meet.php?meetid={id}&attending={userid} == /meet/{meetid}/attendance/{userid}
+     *
+     * POST - attending value mandatory - route = /meet.php?meetid={id}&attending={userid} == /meet/{meetid}/attendance/{userid}
+     */
+    if(array_key_exists("attending", $_GET)){
+
+        $attendingid = $_GET['attending'];
+
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+            echo 'TOM';
+            //get a list of all users attending the meet event currently
+            //by querying the attendance table with meet id and returning
+            //associated userids
+            //can then query the user table for their names OR refactor so that attendance table has
+            //a copy of their names as well.
+            try{
+
+                $query = $readDB->prepare('select userid from attendance where meetid = :meetid');
+                $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if($rowCount == 0){
+                    //no meet found with that id
+                    $response = new Response();
+                    $response->setHttpStatusCode(404); //not found
+                    $response->setSuccess(false);
+                    $response->addMessage("No attendees for this meet found");
+                    $response->send();
+                    exit();
+                }
+
+                /** do a validation check to ensure that the user requesting is
+                 *  an attendee of the meet event.
+                 */
+                $validateUser = false;
+                $attendeeArray = array();
+
+                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                    if ($row['userid'] === $returned_userid){
+                        $validateUser = true;
+                    }
+                    $attendeeArray[] = $row['userid'];
+                }
+
+                if($validateUser == false){
+                    $response = new Response();
+                    $response->setHttpStatusCode(401); //unauthorised
+                    $response->setSuccess(false);
+                    $response->addMessage("Unauthorised user");
+                    $response->send();
+                    exit();
+                }
+
+                //should now have a list of attendees user ids stored in the
+                //attendeeArray - need to return full names so that other
+                //users can see who else is going.
+
+                $nameArray = array();
+                $queryFields = "";
+                foreach ($attendeeArray as $a){
+                    $nameArray[] = $a;
+                }
+
+                foreach($attendeeArray as $a){
+                    $readDB->prepare('select fullname from users where id = :userid');
+                    $query->bindParam(':userid', $a, PDO::PARAM_INT);
+                    $query->execute();
+
+                    while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                        $nameArray[] = $row['fullname'];
+                    }
+                }
+
+                $response = new Response();
+                $response->setHttpStatusCode(200); //unauthorised
+                $response->setSuccess(true);
+                $response->setData($nameArray);
+                $response->send();
+                exit();
+
+            } catch (AttendanceListException $ale){
+                echo 'attendance exception' . $ale;
+                exit();
+
+            } catch (PDOException $e){
+                echo 'pdo exception' . $e;
+                exit();
+            }
+
+        } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE'){
+
+            //delete the userid from the attendance table assuming organiser
+            //or that the user id = attendingid
+
+
+        } elseif ($_SERVER['REQUEST_METHOD'] === 'POST'){
+
+            //add a user to the attendace list if the logged in user is meets organiser
+            //or if the the user has an invite to the meet (later functionality not worrying about for now)
+
+
+        }
     }
 
 
@@ -542,6 +656,8 @@ if(array_key_exists("meetid", $_GET)) {
      *
      */
     echo "this is the attending endpoint";
+
+    //GET to get a list of all users attending
 
 
 
