@@ -143,14 +143,18 @@ if(array_key_exists("meetid", $_GET)) {
 
         $attendingid = $_GET['attending'];
 
+
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-            echo 'TOM';
             //get a list of all users attending the meet event currently
             //by querying the attendance table with meet id and returning
             //associated userids
+
+
             //can then query the user table for their names OR refactor so that attendance table has
             //a copy of their names as well.
+
+
             try{
 
                 $query = $readDB->prepare('select userid from attendance where meetid = :meetid');
@@ -160,7 +164,6 @@ if(array_key_exists("meetid", $_GET)) {
                 $rowCount = $query->rowCount();
 
                 if($rowCount == 0){
-                    //no meet found with that id
                     $response = new Response();
                     $response->setHttpStatusCode(404); //not found
                     $response->setSuccess(false);
@@ -175,13 +178,32 @@ if(array_key_exists("meetid", $_GET)) {
                 $validateUser = false;
                 $attendeeArray = array();
 
+                $idQueryString = "";
+                $i = 0;
+
+                //loop through the returned userids - ensure that the current
+                //user is registered as an attendee and build up query string
+                //so that fullnames can be returned to the client.
                 while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+
                     if ($row['userid'] === $returned_userid){
                         $validateUser = true;
+                       // echo 'exit now';
                     }
-                    $attendeeArray[] = $row['userid'];
+                    //.= "description = :description, ";
+
+                    if($i == 0) {
+                        $idQueryString =  "" . $row['userid'] . "";
+                    } else if ($i >= 1) {
+                        //echo "in else";
+                        $idQueryString .= " or id = " . $row['userid'] . "";
+                    }
+
+                    $i = $i + 1;
+                    //echo $i;
                 }
 
+                //if the user isn't currently in the attendance list for the meet event.
                 if($validateUser == false){
                     $response = new Response();
                     $response->setHttpStatusCode(401); //unauthorised
@@ -191,39 +213,37 @@ if(array_key_exists("meetid", $_GET)) {
                     exit();
                 }
 
-                //should now have a list of attendees user ids stored in the
-                //attendeeArray - need to return full names so that other
-                //users can see who else is going.
+                $query = $readDB->prepare('select fullname from users where id = ' . $idQueryString);
+                $query->execute();
 
-                $nameArray = array();
-                $queryFields = "";
-                foreach ($attendeeArray as $a){
-                    $nameArray[] = $a;
+                $attendeeArray = array();
+
+                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                    $attendeeArray[] = $row['fullname'];
                 }
 
-                foreach($attendeeArray as $a){
-                    $readDB->prepare('select fullname from users where id = :userid');
-                    $query->bindParam(':userid', $a, PDO::PARAM_INT);
-                    $query->execute();
+                $rowCount = $query->rowCount();
 
-                    while($row = $query->fetch(PDO::FETCH_ASSOC)){
-                        $nameArray[] = $row['fullname'];
-                    }
-                }
+                $returnDate = array();
+                $returnData['rows_returned'] = $rowCount;
+                $returnData['attendees'] = $attendeeArray;
 
                 $response = new Response();
-                $response->setHttpStatusCode(200); //unauthorised
+                $response->setHttpStatusCode(200);
                 $response->setSuccess(true);
-                $response->setData($nameArray);
+                $response->toCache(true);
+                $response->setData($returnData);
                 $response->send();
                 exit();
 
-            } catch (AttendanceListException $ale){
-                echo 'attendance exception' . $ale;
-                exit();
 
             } catch (PDOException $e){
-                echo 'pdo exception' . $e;
+                error_log("Database query error - " . $e, 0);
+                $response = new Response();
+                $response->setHttpStatusCode(500);
+                $response->setSuccess(false);
+                $response->addMessage("Failed to get Meet" . $e);
+                $response->send();
                 exit();
             }
 
