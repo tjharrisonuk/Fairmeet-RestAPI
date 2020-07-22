@@ -143,6 +143,14 @@ if(array_key_exists("meetid", $_GET)) {
 
         $attendingid = $_GET['attending'];
 
+        /** TODO - should actually check whether or not an "attendingid" has been
+         *  TODO provided, in POST or delete this would be a userid.
+         */
+        if(isset($attendingid) && ($attendingid != '')){
+            echo 'yes';
+        } else {
+            echo 'no';
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
@@ -153,7 +161,6 @@ if(array_key_exists("meetid", $_GET)) {
 
             //can then query the user table for their names OR refactor so that attendance table has
             //a copy of their names as well.
-
 
             try{
 
@@ -181,26 +188,25 @@ if(array_key_exists("meetid", $_GET)) {
                 $idQueryString = "";
                 $i = 0;
 
-                //loop through the returned userids - ensure that the current
-                //user is registered as an attendee and build up query string
-                //so that fullnames can be returned to the client.
+                /**
+                 * loop through the returned userids - ensure that the current
+                 * user is registered as an attendee and build up query string
+                 * so that fullnames can be returned to the client.*/
+
+
                 while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
 
                     if ($row['userid'] === $returned_userid){
                         $validateUser = true;
-                       // echo 'exit now';
                     }
-                    //.= "description = :description, ";
 
                     if($i == 0) {
                         $idQueryString =  "" . $row['userid'] . "";
                     } else if ($i >= 1) {
-                        //echo "in else";
                         $idQueryString .= " or id = " . $row['userid'] . "";
                     }
 
                     $i = $i + 1;
-                    //echo $i;
                 }
 
                 //if the user isn't currently in the attendance list for the meet event.
@@ -208,7 +214,7 @@ if(array_key_exists("meetid", $_GET)) {
                     $response = new Response();
                     $response->setHttpStatusCode(401); //unauthorised
                     $response->setSuccess(false);
-                    $response->addMessage("Unauthorised user");
+                    $response->addMessage("Unauthorised user"); // or maybe the meet doesn't have any attendees yet
                     $response->send();
                     exit();
                 }
@@ -251,6 +257,75 @@ if(array_key_exists("meetid", $_GET)) {
 
             //delete the userid from the attendance table assuming organiser
             //or that the user id = attendingid
+
+            $validateUser = false;
+            $isOrganiser = false;
+
+            if($attendingid == $returned_userid){
+                $validateUser = true;
+            } else {
+                //query the meet table to see if the logged in user is the organiser
+
+                try{
+                    $query = $readDB('select organiser from meets where id = :meetid and organiser = :userid');
+                    $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                    $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+                    $query->execute();
+
+                    $rowCount = $query->rowCount();
+
+                    if($rowCount === 0){
+                        $response = new Response();
+                        $response->setHttpStatusCode(401);
+                        $response->setSuccess(false);
+                        $response->addMessage('Not authorised to delete from this meet event');
+                        $response->send();
+                        exit();
+                    } else if ($rowCount > 1) {
+                        //something has gone badly wrong
+                        echo "you should never see this";
+                    } else {
+                        $validateUser = true;
+                    }
+                } catch (PDOException $e) {
+                    $response = new Response();
+                    $response->setHttpStatusCode(500);
+                    $response->setSuccess(false);
+                    $response->addMessage('Database error - failed to remove attendee from meet event');
+                    $response->send();
+                    exit();
+                }
+            }
+
+            if ($validateUser == true){
+                $query = $writeDB->prepare('delete from attendance where meetid = :meetid and userid = :userid');
+                $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                if($isOrganiser = true) {
+                    $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+                } else {
+                    $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
+                }
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if($rowCount == 0){
+                    $response = new Response();
+                    $response->setHttpStatusCode(500);
+                    $response->setSuccess(false);
+                    $response->addMessage('Failed to remove attendee from meet event');
+                    $response->send();
+                    exit();
+                }
+
+                //return the new attendee list to the client
+
+
+
+
+            }
+
+
 
 
         } elseif ($_SERVER['REQUEST_METHOD'] === 'POST'){
