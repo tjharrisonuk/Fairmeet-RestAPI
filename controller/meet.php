@@ -262,8 +262,11 @@ if(array_key_exists("meetid", $_GET)) {
             $isOrganiser = false;
 
             if($attendingid == $returned_userid){
+
                 $validateUser = true;
+
             } else {
+
                 //query the meet table to see if the logged in user is the organiser
 
                 try{
@@ -281,12 +284,13 @@ if(array_key_exists("meetid", $_GET)) {
                         $response->addMessage('Not authorised to delete from this meet event');
                         $response->send();
                         exit();
-                    } else if ($rowCount > 1) {
-                        //something has gone badly wrong
-                        echo "you should never see this";
-                    } else {
-                        $validateUser = true;
+
                     }
+
+                    $validateUser = true;
+                    $isOrganiser = true;
+                }
+
                 } catch (PDOException $e) {
                     $response = new Response();
                     $response->setHttpStatusCode(500);
@@ -298,13 +302,17 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             if ($validateUser == true){
+
                 $query = $writeDB->prepare('delete from attendance where meetid = :meetid and userid = :userid');
                 $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+
+                /** TODO turn this into ternary  */
                 if($isOrganiser = true) {
                     $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
                 } else {
                     $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
                 }
+
                 $query->execute();
 
                 $rowCount = $query->rowCount();
@@ -318,7 +326,26 @@ if(array_key_exists("meetid", $_GET)) {
                     exit();
                 }
 
-                //return the new attendee list to the client
+
+                /**TODO - come back to this - return attendee list to the client.
+                try{
+                    $query = $readDB->prepare('select userid from attendance where meetid = :meetid');
+                    $query->bindParam(":meetid", $meetid, PDO::PARAM_INT);
+                    $query->execute();
+
+                    while($query->fetch(PDO::FETCH_ASSOC)) {
+
+
+                    }
+
+                } catch (PDOException $e){
+                    $response = Response();
+                    response->setHttpStatusCode(500);
+                    $response->setSuccess(false);
+                    $response->addMessage('Failed to remove attendee from meet event');
+                    $response->send();
+                    exit();
+                }
 
 
 
