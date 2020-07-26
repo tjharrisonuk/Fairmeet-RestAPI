@@ -45,7 +45,7 @@ $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
 
 try {
     //bring back user details / session details from the db
-    $query = $writeDB->prepare('select userid, accesstokenexpiry, useractive, loginattempts from sessions, users where sessions.userid = users.id and accesstoken = :accesstoken');
+    $query = $writeDB->prepare('select userid, fullname, accesstokenexpiry, useractive, loginattempts from sessions, users where sessions.userid = users.id and accesstoken = :accesstoken');
     $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
     $query->execute();
 
@@ -64,6 +64,7 @@ try {
     $row = $query->fetch(PDO::FETCH_ASSOC);
 
     $returned_userid = $row['userid'];
+    $returned_userfullname = $row['fullname']; //used to add into attendance table later
     $returned_accesstokenexpiry = $row['accesstokenexpiry'];
     $returned_useractive = $row['useractive'];
     $returned_loginattempts = $row['loginattempts'];
@@ -107,6 +108,8 @@ try {
     exit();
 
 }
+
+
 //end auth script
 
 
@@ -146,11 +149,11 @@ if(array_key_exists("meetid", $_GET)) {
         /** TODO - should actually check whether or not an "attendingid" has been
          *  TODO provided, in POST or delete this would be a userid.
          */
-        if(isset($attendingid) && ($attendingid != '')){
+        /*if(isset($attendingid) && ($attendingid != '')){
             echo 'yes';
         } else {
             echo 'no';
-        }
+        }*/
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
@@ -192,7 +195,6 @@ if(array_key_exists("meetid", $_GET)) {
                  * loop through the returned userids - ensure that the current
                  * user is registered as an attendee and build up query string
                  * so that fullnames can be returned to the client.*/
-
 
                 while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
 
@@ -291,6 +293,8 @@ if(array_key_exists("meetid", $_GET)) {
                     $isOrganiser = true;
                 }
 
+                /** TODO - finish this bit */
+
                 } catch (PDOException $e) {
                     $response = new Response();
                     $response->setHttpStatusCode(500);
@@ -302,16 +306,19 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             if ($validateUser == true){
-
+                try{
                 $query = $writeDB->prepare('delete from attendance where meetid = :meetid and userid = :userid');
                 $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
 
-                /** TODO turn this into ternary  */
-                if($isOrganiser = true) {
+
+                ($isOrganiser == true ? $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT) : $query->bindParam(':userid', $attendingid, PDO::PARAM_INT));
+
+                /** non-ternary version */
+                /*if($isOrganiser = true) {
                     $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
                 } else {
                     $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
-                }
+                }*/
 
                 $query->execute();
 
@@ -327,9 +334,9 @@ if(array_key_exists("meetid", $_GET)) {
                 }
 
 
-                /**TODO - come back to this - return attendee list to the client.
-                try{
-                    $query = $readDB->prepare('select userid from attendance where meetid = :meetid');
+                /**TODO - come back to this - return attendee list to the client. */
+
+                    $query = $readDB->prepare('select userid, fullname from attendance where meetid = :meetid');
                     $query->bindParam(":meetid", $meetid, PDO::PARAM_INT);
                     $query->execute();
 
@@ -347,9 +354,6 @@ if(array_key_exists("meetid", $_GET)) {
                     exit();
                 }
 
-
-
-
             }
 
 
@@ -365,20 +369,23 @@ if(array_key_exists("meetid", $_GET)) {
     }
 
 
+    /** GENERAL METHODS if meet id - no attendance
+     * /meet/{id}
+     */
+
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         /** GET request
          *
          *  Get the details of a meet
          * -- must be one of the attendees to do this
-         * -- attendance add / remove in attendance class
          */
 
         try {
             /**
              *  add auth to the end when ready
              */
-            $query = $readDB->prepare('select id, userid, meetid from attendance where meetid = :meetid');
+            $query = $readDB->prepare('select id, userid, meetid, fullname from attendance where meetid = :meetid'); /**TODO is this right? **/
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->execute();
 
@@ -726,6 +733,8 @@ if(array_key_exists("meetid", $_GET)) {
             $returnData['rows_returned'] = $rowCount;
             $returnData['meets'] = $meetArray;
 
+            /** @ $response */
+
             $response = new Response();
             $response->setHttpStatusCode(200);
             $response->setSuccess(true);
@@ -912,12 +921,11 @@ if(array_key_exists("meetid", $_GET)) {
                 (isset($jsonData->description) ? $jsonData->description : null),
                 (isset($jsonData->scheduledTime) ? $jsonData->scheduledTime : null),
                 (isset($jsonData->finalised) ? $jsonData->finalised : 'N'),
-                $returned_userid, /** TODO - decide on this should it be up to client?? */
+                $returned_userid, /** userid posting the meet will be auto assigned as its organiser */
                 (isset($jsonData->geolocationLon) ? $jsonData->geolocationLon : null),
                 (isset($jsonData->geolocationLat) ? $jsonData->geolocationLat : null),
                 (isset($jsonData->postcode) ? $jsonData->postcode : null),
                 (isset($jsonData->eventType) ? $jsonData->eventType : null),
-                /** TODO - seperate out attendance from meet *///null //start with no attendees
             );
 
             //get variables back out of the newly created meet object, they will now be validated
@@ -931,7 +939,11 @@ if(array_key_exists("meetid", $_GET)) {
             $postcode = $newMeet->getPostCode();
             $eventType = $newMeet->getEventType();
 
-            //insert into database
+            /** Start transaction as the meet will need to be inserted into the db
+             *  the organiser (userid posting) will need also to be added into the attendance table
+             */
+            $writeDB->beginTransaction();
+
             $query = $writeDB->prepare('insert into meets (id, title, description, scheduledTime, finalised, geolocationLon, geolocationLat, postcode, eventType, organiser) values (null, :title, :description, STR_TO_DATE(:scheduledTime, \'%d/%m/%Y %H:%i\'), :finalised, :geolocationLon, :geolocationLat, :postcode, :eventType, :organiser)');
             $query->bindParam(':title', $title, PDO::PARAM_STR);
             $query->bindParam(':description', $description, PDO::PARAM_STR);
@@ -981,6 +993,9 @@ if(array_key_exists("meetid", $_GET)) {
                 $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
                 $meetArray[] = $meet->returnMeetAsArray();
             }
+
+            /** Add the organiser to the attendee tables */
+            $query = $writeDB->prepare('insert into attendance (userid, meetid) values (:userid, :meetid)')
 
 
             $returnData = array();
