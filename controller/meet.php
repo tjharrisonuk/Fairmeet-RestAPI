@@ -157,17 +157,29 @@ if(array_key_exists("meetid", $_GET)) {
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
-            //get a list of all users attending the meet event currently
-            //by querying the attendance table with meet id and returning
-            //associated userids
+            /**
+             * Can only get a list of attendees for a meet event if no attendingid
+             * parameter has actually been specified in the request
+             */
 
+            if($attendingid !== '') {
+                $response = new Response();
+                $response->setHttpStatusCode(400); //Bad Request
+                $response->setSuccess(false);
+                $response->addMessage("Cannot get specified user ids attending. Must be blank"); /** TODO - rethink this message */
+                $response->send();
+                exit();
+            }
 
-            //can then query the user table for their names OR refactor so that attendance table has
-            //a copy of their names as well.
+            /**
+             * get a list of all users attending the meet event currently
+             * by querying the attendance table with meet id and returning
+             * associated userids
+            */
 
             try{
 
-                $query = $readDB->prepare('select userid from attendance where meetid = :meetid');
+                $query = $readDB->prepare('select userid, fullname from attendance where meetid = :meetid');
                 $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
                 $query->execute();
 
@@ -182,19 +194,17 @@ if(array_key_exists("meetid", $_GET)) {
                     exit();
                 }
 
-                /** do a validation check to ensure that the user requesting is
-                 *  an attendee of the meet event.
-                 */
-                $validateUser = false;
-                $attendeeArray = array();
-
-                $idQueryString = "";
-                $i = 0;
 
                 /**
-                 * loop through the returned userids - ensure that the current
-                 * user is registered as an attendee and build up query string
-                 * so that fullnames can be returned to the client.*/
+                 * loop through the returned userids - to find out if the logged in
+                 * is able to return to this list back to the client.
+                 *
+                 * While doing so, add the fullnames to a list in case they do have
+                 * that level of privilege.
+                 */
+
+                $attendeeArray = array();
+                $validateUser = false;
 
                 while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
 
@@ -202,13 +212,15 @@ if(array_key_exists("meetid", $_GET)) {
                         $validateUser = true;
                     }
 
-                    if($i == 0) {
+                    $attendeeArray[] = $row['fullname'];
+
+                    /*if($i == 0) {
                         $idQueryString =  "" . $row['userid'] . "";
                     } else if ($i >= 1) {
                         $idQueryString .= " or id = " . $row['userid'] . "";
                     }
 
-                    $i = $i + 1;
+                    $i = $i + 1;*/
                 }
 
                 //if the user isn't currently in the attendance list for the meet event.
@@ -221,18 +233,16 @@ if(array_key_exists("meetid", $_GET)) {
                     exit();
                 }
 
-                $query = $readDB->prepare('select fullname from users where id = ' . $idQueryString);
-                $query->execute();
+                /*$query = $readDB->prepare('select fullname from users where id = ' . $idQueryString);
+                $query->execute();*/
 
-                $attendeeArray = array();
-
-                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                /*while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
                     $attendeeArray[] = $row['fullname'];
-                }
+                }*/
 
                 $rowCount = $query->rowCount();
 
-                $returnDate = array();
+                $returnData = array();
                 $returnData['rows_returned'] = $rowCount;
                 $returnData['attendees'] = $attendeeArray;
 
