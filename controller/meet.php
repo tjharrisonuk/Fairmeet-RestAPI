@@ -267,21 +267,24 @@ if(array_key_exists("meetid", $_GET)) {
 
         } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE'){
 
-            //delete the userid from the attendance table assuming organiser
-            //or that the user id = attendingid
+            /**
+             *  delete the userid from the attendance table assuming organiser or that the user id = attendingid
+             */
 
             $validateUser = false;
             $isOrganiser = false;
 
-            if($attendingid == $returned_userid){
+            try {
 
-                $validateUser = true;
+                if($attendingid == $returned_userid){
 
-            } else {
+                    //logged in user is the one trying to delete from attendance so...
+                    $validateUser = true;
 
-                //query the meet table to see if the logged in user is the organiser
+                } else {
 
-                try{
+                    // only other person able to do this is the organiser .. so check if logged user is he/she...
+
                     $query = $readDB('select organiser from meets where id = :meetid and organiser = :userid');
                     $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
                     $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
@@ -296,78 +299,82 @@ if(array_key_exists("meetid", $_GET)) {
                         $response->addMessage('Not authorised to delete from this meet event');
                         $response->send();
                         exit();
-
                     }
 
                     $validateUser = true;
                     $isOrganiser = true;
                 }
 
-                /** TODO - finish this bit */
 
-                } catch (PDOException $e) {
-                    $response = new Response();
-                    $response->setHttpStatusCode(500);
-                    $response->setSuccess(false);
-                    $response->addMessage('Database error - failed to remove attendee from meet event');
-                    $response->send();
-                    exit();
-                }
-            }
+                /** Now that we have a vaid user */
 
-            if ($validateUser == true){
-                try{
-                $query = $writeDB->prepare('delete from attendance where meetid = :meetid and userid = :userid');
-                $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                if ($validateUser == true) {
 
+                    $query = $writeDB->prepare('delete from attendance where meetid = :meetid and userid = :userid');
+                    $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
 
-                ($isOrganiser == true ? $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT) : $query->bindParam(':userid', $attendingid, PDO::PARAM_INT));
+                    ($isOrganiser == true ? $query->bindParam(':userid', $attendingid, PDO::PARAM_INT) : $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT));
 
-                /** non-ternary version */
-                /*if($isOrganiser = true) {
-                    $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
-                } else {
-                    $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
-                }*/
+                    /** non-ternary version */
+                    /*if($isOrganiser = true) {
+                        $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+                    } else {
+                        $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
+                    }*/
 
-                $query->execute();
+                    $query->execute();
 
-                $rowCount = $query->rowCount();
+                    $rowCount = $query->rowCount();
 
-                if($rowCount == 0){
-                    $response = new Response();
-                    $response->setHttpStatusCode(500);
-                    $response->setSuccess(false);
-                    $response->addMessage('Failed to remove attendee from meet event');
-                    $response->send();
-                    exit();
-                }
+                    if ($rowCount == 0) {
+                        $response = new Response();
+                        $response->setHttpStatusCode(500);
+                        $response->setSuccess(false);
+                        $response->addMessage('Failed to remove attendee from meet event');
+                        $response->send();
+                        exit();
+                    }
 
 
-                /**TODO - come back to this - return attendee list to the client. */
+                    /**TODO - come back to this - return attendee list to the client. */
 
-                    $query = $readDB->prepare('select userid, fullname from attendance where meetid = :meetid');
+                    $query = $readDB->prepare('select fullname from attendance where meetid = :meetid');
                     $query->bindParam(":meetid", $meetid, PDO::PARAM_INT);
                     $query->execute();
 
-                    while($query->fetch(PDO::FETCH_ASSOC)) {
+                    $attendeeArray = array();
+
+                    $rowCount = $query->rowCount();
 
 
+                    while ($query->fetch(PDO::FETCH_ASSOC)) {
+                        $attendeeArray[] = $row['fullname'];
                     }
 
-                } catch (PDOException $e){
-                    $response = Response();
-                    response->setHttpStatusCode(500);
-                    $response->setSuccess(false);
-                    $response->addMessage('Failed to remove attendee from meet event');
+                    $rowCount = $query->rowCount();
+
+                    $returnData = array();
+                    $returnData['rows_returned'] = $rowCount;
+                    $returnData['attendees'] = $attendeeArray;
+
+                    $response = new Response();
+                    $response->setHttpStatusCode(204); //successful deletion
+                    $response->setSuccess(true);
+                    $response->toCache(true);
+                    $response->setData($returnData);
                     $response->send();
                     exit();
                 }
 
+
+            } catch (PDOException $e){
+                $response = Response();
+                $response->setHttpStatusCode(500);
+                $response->setSuccess(false);
+                $response->addMessage('Failed to remove attendee from meet event');
+                $response->send();
+                exit();
             }
-
-
-
 
         } elseif ($_SERVER['REQUEST_METHOD'] === 'POST'){
 
@@ -789,19 +796,6 @@ if(array_key_exists("meetid", $_GET)) {
         exit();
     }
 
-} elseif(array_key_exists("attending", $_GET)){
-
-    /** meets/attending
-     *
-     * this might need to be in its own endpoint /attending/
-     *
-     */
-    echo "this is the attending endpoint";
-
-    //GET to get a list of all users attending
-
-
-
 } elseif (empty($_GET)){
 
     /** if no meetid provided
@@ -1005,7 +999,7 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             /** Add the organiser to the attendee tables */
-            $query = $writeDB->prepare('insert into attendance (userid, meetid) values (:userid, :meetid)')
+            $query = $writeDB->prepare('insert into attendance (userid, meetid) values (:userid, :meetid)');
 
 
             $returnData = array();
