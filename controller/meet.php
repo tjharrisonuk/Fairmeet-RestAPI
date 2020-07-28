@@ -195,7 +195,6 @@ if(array_key_exists("meetid", $_GET)) {
                     exit();
                 }
 
-
                 /**
                  * loop through the returned userids - to find out if the logged in
                  * is able to return to this list back to the client.
@@ -507,9 +506,12 @@ if(array_key_exists("meetid", $_GET)) {
 
     }
 
-
     /** GENERAL METHODS if meet id - no attendance
-     * /meet/{id}
+     *  meet/{id}
+     *
+     *
+     *
+     *
      */
 
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -1042,7 +1044,7 @@ if(array_key_exists("meetid", $_GET)) {
 
             //try to create new meet based on that. If that fails, it'll throw a meet exception
             $newMeet = new Meet(
-                null,
+                null, //auto assigned
                 $jsonData->title,
                 (isset($jsonData->description) ? $jsonData->description : null),
                 (isset($jsonData->scheduledTime) ? $jsonData->scheduledTime : null),
@@ -1114,15 +1116,37 @@ if(array_key_exists("meetid", $_GET)) {
             }
 
             $meetArray = array();
+            $newMeetID; //use this to add into attendance table.
 
             while($row = $query->fetch(PDO::FETCH_ASSOC)){
                 $meet = new Meet($row['id'], $row['title'], $row['description'], $row['scheduledTime'], $row['finalised'], $row['organiser'], $row['geolocationLon'], $row['geolocationLat'], $row['postcode'], $row['eventType']);
+                $newMeetID = $row['id'];
                 $meetArray[] = $meet->returnMeetAsArray();
             }
 
-            /** Add the organiser to the attendee tables */
-            $query = $writeDB->prepare('insert into attendance (userid, meetid) values (:userid, :meetid)');
+            //find out the name of the organiser
+            $query = $readDB->prepare('select fullname from users where id = :userid');
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->execute();
 
+            $orgFullname;
+
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                $orgFullname = $row['fullname'];
+            }
+
+            /** Add the organiser to the attendee tables */
+            $query = $writeDB->prepare('insert into attendance (userid, meetid, fullname) values (:userid, :meetid, :fullname)');
+            $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+            $query->bindParam(':meetid', $newMeetID, PDO::PARAM_INT);
+            $query->bindParam(':fullname', $orgFullname, PDO::PARAM_INT);
+            $query->execute();
+
+            /** TODO - some error checking to make sure its been added successfully */
+
+
+            //transaction completed.
+            $writeDB->commit();
 
             $returnData = array();
             $returnData['rows_returned'] = $rowCount;
@@ -1168,13 +1192,6 @@ if(array_key_exists("meetid", $_GET)) {
     }
 
 }
-
-
-
-
-
-
-
 
 
 /** show all finalised or unfinalised meets
