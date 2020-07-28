@@ -214,13 +214,6 @@ if(array_key_exists("meetid", $_GET)) {
 
                     $attendeeArray[] = $row['fullname'];
 
-                    /*if($i == 0) {
-                        $idQueryString =  "" . $row['userid'] . "";
-                    } else if ($i >= 1) {
-                        $idQueryString .= " or id = " . $row['userid'] . "";
-                    }
-
-                    $i = $i + 1;*/
                 }
 
                 //if the user isn't currently in the attendance list for the meet event.
@@ -285,7 +278,7 @@ if(array_key_exists("meetid", $_GET)) {
 
                     // only other person able to do this is the organiser .. so check if logged user is he/she...
 
-                    $query = $readDB('select organiser from meets where id = :meetid and organiser = :userid');
+                    $query = $readDB->prepare('select organiser from meets where id = :meetid and organiser = :userid');
                     $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
                     $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
                     $query->execute();
@@ -314,14 +307,6 @@ if(array_key_exists("meetid", $_GET)) {
                     $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
 
                     ($isOrganiser == true ? $query->bindParam(':userid', $attendingid, PDO::PARAM_INT) : $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT));
-
-                    /** non-ternary version */
-                    /*if($isOrganiser = true) {
-                        $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
-                    } else {
-                        $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
-                    }*/
-
                     $query->execute();
 
                     $rowCount = $query->rowCount();
@@ -336,34 +321,43 @@ if(array_key_exists("meetid", $_GET)) {
                     }
 
 
-                    /**TODO - come back to this - return attendee list to the client. */
+                    $returnQuery = $readDB->prepare('select fullname from attendance where meetid = :meetid');
+                    $returnQuery->bindParam(":meetid", $meetid, PDO::PARAM_INT);
+                    $returnQuery->execute();
 
-                    $query = $readDB->prepare('select fullname from attendance where meetid = :meetid');
-                    $query->bindParam(":meetid", $meetid, PDO::PARAM_INT);
-                    $query->execute();
+
+                    $rowCount = $returnQuery->rowCount();
 
                     $attendeeArray = array();
 
-                    $rowCount = $query->rowCount();
-
-
-                    while ($query->fetch(PDO::FETCH_ASSOC)) {
+                    while ($row = $returnQuery->fetch(PDO::FETCH_ASSOC)) {
                         $attendeeArray[] = $row['fullname'];
+                        echo $row['fullname'];
                     }
 
-                    $rowCount = $query->rowCount();
+                    $returnRowCount = $returnQuery->rowCount();
 
                     $returnData = array();
-                    $returnData['rows_returned'] = $rowCount;
+                    $returnData['rows_returned'] = $returnRowCount;
                     $returnData['attendees'] = $attendeeArray;
 
+
                     $response = new Response();
-                    $response->setHttpStatusCode(204); //successful deletion
+                    $response->setHttpStatusCode(200); //successful deletion
                     $response->setSuccess(true);
-                    $response->toCache(true);
+                    $response->addMessage("User successfully removed from Meet");
                     $response->setData($returnData);
                     $response->send();
                     exit();
+
+
+                } else {
+                    //logged in user doesn't have permission to delete
+                    $response = new Response();
+                    $response->setHttpStatusCode(401); //unauthorised
+                    $response->setSuccess(false);
+                    $response->addMessage("Logged in user is not authorised to delete this user from Meet");
+                    $response->send();
                 }
 
 
