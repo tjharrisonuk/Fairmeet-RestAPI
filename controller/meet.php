@@ -142,6 +142,7 @@ if(array_key_exists("meetid", $_GET)) {
      *
      * POST - attending value mandatory - route = /meet.php?meetid={id}&attending={userid} == /meet/{meetid}/attendance/{userid}
      */
+
     if(array_key_exists("attending", $_GET)){
 
         $attendingid = $_GET['attending'];
@@ -320,6 +321,7 @@ if(array_key_exists("meetid", $_GET)) {
                         exit();
                     }
 
+                    //Has been successful. Return the updated list of attendees to the client.
 
                     $returnQuery = $readDB->prepare('select fullname from attendance where meetid = :meetid');
                     $returnQuery->bindParam(":meetid", $meetid, PDO::PARAM_INT);
@@ -332,7 +334,6 @@ if(array_key_exists("meetid", $_GET)) {
 
                     while ($row = $returnQuery->fetch(PDO::FETCH_ASSOC)) {
                         $attendeeArray[] = $row['fullname'];
-                        echo $row['fullname'];
                     }
 
                     $returnRowCount = $returnQuery->rowCount();
@@ -376,7 +377,134 @@ if(array_key_exists("meetid", $_GET)) {
             //or if the the user has an invite to the meet (later functionality not worrying about for now)
 
 
+            /** Doesn't need to take in any parameters as these should already be stored in the
+             *  users table.
+             *
+             *  What needs doing is the values :userid and :fullname to be copied over into
+             *  attendance table if the current logged in user is the organiser of the event
+             **/
+            try{
+
+                $query = $readDB->prepare('select organiser from meets where id = :meetid and organiser = :userid');
+                $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if($rowCount === 0){
+                    $response = new Response();
+                    $response->setHttpStatusCode(401);
+                    $response->setSuccess(false);
+                    $response->addMessage('Not authorised to add new attendees to this Meet Event');
+                    $response->send();
+                    exit();
+                }
+
+                //first find out if the user and meet event are already in the attendance table
+
+                $query = $readDB->prepare('select id from attendance where meetid = :meetid and userid = :userid');
+                $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if($rowCount != 0){
+                    $response = new Response();
+                    $response->setHttpStatusCode(400);
+                    $response->setSuccess(false);
+                    $response->addMessage('User is already attending Meet');
+                    $response->send();
+                    exit();
+                }
+
+                //////////////
+
+
+                //get the fullname from the users table for the user id to be added
+                $query = $readDB->prepare('select fullname from users where id = :userid');
+                $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if($rowCount === 0){
+                    $response = new Response();
+                    $response->setHttpStatusCode(404);
+                    $response->setSuccess(false);
+                    $response->addMessage('User not found');
+                    $response->send();
+                    exit();
+                }
+
+                $newName = '';
+
+                while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                    $newName = $row['fullname'];
+                }
+
+                $query = $writeDB->prepare('insert into attendance (userid, meetid, fullname) values (:userid, :meetid, :fullname)');
+                $query->bindParam(':userid', $attendingid, PDO::PARAM_INT);
+                $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                $query->bindParam(':fullname', $newName, PDO::PARAM_INT);
+                $query->execute();
+
+                $rowCount = $query->rowCount();
+
+                if($rowCount === 0){
+                    $response = new Response();
+                    $response->setHttpStatusCode(500); // server error
+                    $response->setSuccess(false);
+                    $response->addMessage('Could not add attendee to list');
+                    $response->send();
+                    exit();
+                }
+
+                 //Has been successful. Return the updated list of attendees to the client.
+
+                $returnQuery = $readDB->prepare('select fullname from attendance where meetid = :meetid');
+                $returnQuery->bindParam(":meetid", $meetid, PDO::PARAM_INT);
+                $returnQuery->execute();
+
+
+                $rowCount = $returnQuery->rowCount();
+
+                $attendeeArray = array();
+
+                while ($row = $returnQuery->fetch(PDO::FETCH_ASSOC)) {
+                    $attendeeArray[] = $row['fullname'];
+                }
+
+                $returnRowCount = $returnQuery->rowCount();
+
+                $returnData = array();
+                $returnData['rows_returned'] = $returnRowCount;
+                $returnData['attendees'] = $attendeeArray;
+
+
+                $response = new Response();
+                $response->setHttpStatusCode(200); //successful deletion
+                $response->setSuccess(true);
+                $response->addMessage("User successfully added to Meet");
+                $response->setData($returnData);
+                $response->send();
+                exit();
+
+
+            } catch (PDOException $e){
+                /** TODO - server log this? */
+                $response = Response();
+                $response->setHttpStatusCode(500);
+                $response->setSuccess(false);
+                $response->addMessage('Failed to add user to the meet event');
+                $response->send();
+                exit();
+            }
+
+
         }
+
     }
 
 
@@ -1011,7 +1139,7 @@ if(array_key_exists("meetid", $_GET)) {
 
         } catch (PDOException $e){
             error_log("Database query error - ".$e, 0);
-            echo $e; //** TODO remove when not needed */
+            //echo $e; //**
             $response = new Response();
             $response->setHttpStatusCode(500); //incorrect data
             $response->setSuccess(false);
