@@ -29,8 +29,8 @@ class MPCalc{
         $bX = (cos($lat2Rad) * cos($longDiffRad));
         $bY = (cos($lat2Rad) * sin($longDiffRad));
 
-        $lat3 = atan2((sin($lat1Rad) + sin($lat2Rad)), (sqrt((cos($lat1Rad) + $bX) * (cos($lat1Rad) + $bX)) + ($bY * $bY)));
-        $lon3 = $lon1 + atan2($bY, cos($lat1Rad) + $bX);
+        $lat3 = atan2((sin($lat1Rad) + sin($lat2Rad)), sqrt((cos($lat1Rad) + $bX) * (cos($lat1Rad) + $bX) + $bY * $bY));
+        $lon3 = $lon1 + (atan2($bY, (cos($lat1Rad) + $bX)));
 
 
         return [$this->toDegree($lon3), $this->toDegree($lat3)];
