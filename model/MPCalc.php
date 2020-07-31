@@ -6,7 +6,7 @@ use Exception;
 class MPCalc{
 
     public function toRad($input){
-        return (($input * pi()) / 180);
+        return ($input * pi()) / 180;
     }
 
     public function toDegree($input){

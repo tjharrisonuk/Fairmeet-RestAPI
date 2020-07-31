@@ -56,7 +56,6 @@ if(!$jsonData = json_decode($rawPostData)){
     exit();
 }
 
-
 //make sure that mandatory fields are set
 if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->password)){
     $response = new Response();
@@ -70,6 +69,16 @@ if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->
     $response->send();
     exit();
 }
+
+//either postcode or both geocodes must be set
+if(!isset($jsonData->postocde) || (!isset($jsonData->geolocationLon) || !isset($jsonData->geolocationLat))){
+    $response = new Response();
+    $response->setHttpStatusCode(400);
+    $response->setSuccess(false);
+    $response->addMessage('Postcode or Geolocation Data must be supplied');
+    $response->send();
+}
+
 //validate that json data has correct length)
 if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strlen($jsonData->email) < 1 || strlen($jsonData->email) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255){
     $response = new Response();
@@ -98,6 +107,10 @@ if(!filter_var($jsonData->email, FILTER_VALIDATE_EMAIL)){
     $response->send();
     exit();
 }
+
+/** TODO - validate the postcode and or the geolocation data */
+
+
 
 //get rid of whitespace
 $fullname = trim($jsonData->fullname);

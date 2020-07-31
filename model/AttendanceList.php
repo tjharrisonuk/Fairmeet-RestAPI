@@ -9,7 +9,7 @@ class AttendanceList{
     private $_meetid;
     private $_attendees = array();
 
-    public function __construct($id, $_meetid, $attendees){
+    public function __construct($id, $meetid, $attendees){
         $this->setId($id);
         $this->setMeetId($meetid);
         $this->setAttendees($attendees);
@@ -37,7 +37,7 @@ class AttendanceList{
         $this->_id = $id;
     }
 
-    public function setMeetId($meetId){
+    public function setMeetId($meetid){
         /**
          * can't be null, must be numeric, no neg vals, not greater than BIGINT
          */
@@ -61,6 +61,26 @@ class AttendanceList{
             }
         }
         $this->_attendees = $attendees;
+    }
+
+    private function getAllUserGeos(){
+        /**method to generate array with lat and lon information for
+         * every user attending the meet
+         * TODO - this is just one idea for implementation at this stage
+         * */
+
+        foreach ($this->getAttendees() as $a){
+
+            //open db connection
+            //read geo info for each user
+            //add info to multi-dem array
+
+            // || id || userid || geocodelon || geocodelat
+
+            
+
+        }
+
     }
 
     public function returnAttendanceListAsArray(){
