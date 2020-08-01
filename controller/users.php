@@ -71,7 +71,7 @@ if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->
 }
 
 //either postcode or both geocodes must be set
-if(!isset($jsonData->postocde) || (!isset($jsonData->geolocationLon) || !isset($jsonData->geolocationLat))){
+if(!isset($jsonData->postcode) || (!isset($jsonData->geolocationLon) || !isset($jsonData->geolocationLat))){
     $response = new Response();
     $response->setHttpStatusCode(400);
     $response->setSuccess(false);
