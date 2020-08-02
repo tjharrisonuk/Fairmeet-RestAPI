@@ -4,9 +4,11 @@ namespace fairmeet\controller;
 use fairmeet\model\Response;
 use PDO;
 use PDOException;
+use fairmeet\model\PostcodeHelper;
 
 require_once ('DB.php');
 require_once ('../model/Response.php');
+require_once ('../model/PostcodeHelper.php');
 
 // set up connections to the DB
 try {
@@ -56,8 +58,25 @@ if(!$jsonData = json_decode($rawPostData)){
     exit();
 }
 
-//make sure that mandatory fields are set
-if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->password)){
+
+
+//mandatory information checks --
+//can have either postcode or geolocation
+//if we have geolocation - must have both lat and lon
+
+$geoLocationSupplied = false;
+$postcodeSupplied = false;
+
+if(isset($jsonData->postcode)){
+    $postcodeSupplied = true;
+}
+
+//shouldn't be user input in the client app so no need to test validity for now. Maybe should be in the future....
+if(isset($jsonData->geoLocationLon) && isset($jsonData->geoLocationLat)){
+    $geoLocationSupplied = true;
+}
+
+if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->password) || ($geoLocationSupplied === false && $postcodeSupplied === false)){
     $response = new Response();
     $response->setHttpStatusCode(400); //hasn't supplied mandatory
     $response->setSuccess(false);
@@ -65,22 +84,20 @@ if(!isset($jsonData->fullname) || !isset($jsonData->email) || !isset($jsonData->
     (!isset($jsonData->fullname) ? $response->addMessage("Full name not supplied") : false);
     (!isset($jsonData->email) ? $response->addMessage("Email not supplied") : false);
     (!isset($jsonData->password) ? $response->addMessage("Password not supplied") : false);
-
+    ($geoLocationSupplied === false && $postcodeSupplied === false ? $response->addMessage('Full location data or postcode not supplied') : false);
     $response->send();
     exit();
 }
 
-//either postcode or both geocodes must be set
-if(!isset($jsonData->postcode) || (!isset($jsonData->geolocationLon) || !isset($jsonData->geolocationLat))){
-    $response = new Response();
-    $response->setHttpStatusCode(400);
-    $response->setSuccess(false);
-    $response->addMessage('Postcode or Geolocation Data must be supplied');
-    $response->send();
-}
+//validate that json data has valid values)
+if(strlen($jsonData->fullname) < 1 ||
+    strlen($jsonData->fullname) > 255 ||
+    strlen($jsonData->email) < 1 ||
+    strlen($jsonData->email) > 255 ||
+    strlen($jsonData->password) < 1 ||
+    strlen($jsonData->password) > 255 ||
+    !filter_var($jsonData->email, FILTER_VALIDATE_EMAIL)) {
 
-//validate that json data has correct length)
-if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strlen($jsonData->email) < 1 || strlen($jsonData->email) > 255 || strlen($jsonData->password) < 1 || strlen($jsonData->password) > 255){
     $response = new Response();
     $response->setHttpStatusCode(400); //request method not allowed
     $response->setSuccess(false);
@@ -90,6 +107,7 @@ if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strle
 
     (strlen($jsonData->email) < 1 ? $response->addMessage("Email cannot be blank") : false);
     (strlen($jsonData->email) > 255 ? $response->addMessage("Email cannot be over 255 characters") : false);
+    (!filter_var($jsonData->email, FILTER_VALIDATE_EMAIL) ? $response->addMessage("Email address not in valid format") : false);
 
     (strlen($jsonData->password) < 1 ? $response->addMessage("Password cannot be blank") : false);
     (strlen($jsonData->password) > 255 ? $response->addMessage("Password cannot be over 255 characters") : false);
@@ -98,19 +116,51 @@ if(strlen($jsonData->fullname) < 1 || strlen($jsonData->fullname) > 255 || strle
     exit();
 }
 
-//validate that a valid email address has been provided
-if(!filter_var($jsonData->email, FILTER_VALIDATE_EMAIL)){
-    $response = new Response();
-    $response->setHttpStatusCode(400);
-    $response->setSuccess(false);
-    $response->addMessage("Email address must be valid");
-    $response->send();
-    exit();
+//fill in the database tables with either provided values in the json - if not fill in the blanks with requests from
+//postcodes.io using helper class
+if ($geoLocationSupplied === true) {
+
+    // todo - validation on geolocation input
+
+    $geoLocationLon = $jsonData->geoLocationLon;
+    $geoLocationLon = $jsonData->geoLocationLat;
+
 }
 
-/** TODO - validate the postcode and or the geolocation data */
+if($geoLocationSupplied === false && $postcodeSupplied === true){
+    //call to postcode helper -> make a request to postcodes.io to fill in the missing
+    //geolocation information
 
+    $geoData = PostcodeHelper::findGeoCoordsFromPostcode($jsonData->postcode);
 
+    //postcodes.io supplied geolocation variables
+    $geoLocationLon = $geoData[0];
+    $geoLocationLat = $geoData[1];
+}
+
+if($postcodeSupplied === true){
+
+    //validate the postcode
+    if(!PostcodeHelper::validatePostcode($jsonData->postcode)){
+        $response = new Response();
+        $response->setHttpStatusCode(400); //request method not allowed
+        $response->setSuccess(false);
+        $response->addMessage("Postcode supplied was invalid");
+        $response->send();
+        exit();
+    }
+
+    $postcode = $jsonData->postcode;
+
+}
+
+if ($postcodeSupplied === false && $geoLocationSupplied === true){
+
+    $postcode = PostcodeHelper::findPostcodeFromGeoCords($jsonData->geoLocationLon, $jsonData->geoLocationLat);
+    $geoLocationLon = $jsonData->geoLocationLon;
+    $geoLocationLat = $jsonData->geoLocationLat;
+
+}
 
 //get rid of whitespace
 $fullname = trim($jsonData->fullname);
@@ -140,10 +190,13 @@ try{
     //hash the password
     $hashed_password = password_hash($password, PASSWORD_DEFAULT); //always uses the most up to date hashing algorithm supported by PHP
 
-    $query = $writeDB->prepare('insert into users (fullname, email, password) values (:fullname, :email, :password)');
+    $query = $writeDB->prepare('insert into users (fullname, email, password, postcode, geoLocationLon, geoLocationLat) values (:fullname, :email, :password, :postcode, :geoLocationLon, :geoLocationLat)');
     $query->bindParam('fullname', $fullname, PDO::PARAM_STR);
     $query->bindParam('email', $email, PDO::PARAM_STR);
     $query->bindParam('password', $hashed_password, PDO::PARAM_STR);
+    $query->bindParam('postcode', $postcode, PDO::PARAM_STR);
+    $query->bindParam('geoLocationLon', $geoLocationLon, PDO::PARAM_STR);
+    $query->bindParam('geoLocationLat', $geoLocationLat, PDO::PARAM_STR);
     $query->execute();
 
     $rowCount = $query->rowCount();
@@ -164,6 +217,10 @@ try{
     $returnData['user_id'] = $lastUserID;
     $returnData['fullname'] = $fullname;
     $returnData['email'] = $email;
+    $returnData['postcode'] = $postcode;
+    $returnData['geoLocationLon'] = $geoLocationLon;
+    $returnData['geoLocationLat'] = $geoLocationLat;
+
 
     $response = new Response();
     $response->setHttpStatusCode(201); //creation
@@ -175,6 +232,7 @@ try{
 
 
 } catch (PDOException $e){
+    echo $e;
     error_log("Database Query Error - ".$e, 0);
     $response = new Response();
     $response->setHttpStatusCode(500);

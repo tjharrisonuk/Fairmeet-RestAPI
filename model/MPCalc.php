@@ -5,15 +5,42 @@ use Exception;
 
 class MPCalc{
 
-    private $_apiUrl;
+    //class function to provide postcode information to users who sign up with only geolocation coords
 
-    public function __construct(){
-        //may change apis to use HERE mapping later on
-        //for now though postcodes.io will be used to get postcodes from lat/lon
-        //coordinate points.
+        /*function CallAPI($method, $url, $data = false)
+        {
+            $curl = curl_init();
 
-        $_apiUrl = 'https://api.postcodes.io/postcodes';
-    }
+            switch ($method)
+            {
+                case "POST":
+                    curl_setopt($curl, CURLOPT_POST, 1);
+
+                    if ($data)
+                        curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+                    break;
+                case "PUT":
+                    curl_setopt($curl, CURLOPT_PUT, 1);
+                    break;
+                default:
+                    if ($data)
+                        $url = sprintf("%s?%s", $url, http_build_query($data));
+            }
+
+            // Optional Authentication:
+            curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_setopt($curl, CURLOPT_USERPWD, "username:password");
+
+            curl_setopt($curl, CURLOPT_URL, $url);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+
+            $result = curl_exec($curl);
+
+            curl_close($curl);
+
+            return $result;
+        }*/
+
 
     public function toRad($input){
         return $input * (pi() / 180);
@@ -53,6 +80,11 @@ class MPCalc{
 
         //return an array, with midpoint lon and lat coordinates
         return [$this->toDegree($lon3), $this->toDegree($lat3)];
+    }
+
+    //should take in an array of geolocations gotten from users
+    public function setMeetLocation (){
+
     }
 
 }
