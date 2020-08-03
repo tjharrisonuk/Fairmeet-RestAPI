@@ -127,17 +127,6 @@ if ($geoLocationSupplied === true) {
 
 }
 
-if($geoLocationSupplied === false && $postcodeSupplied === true){
-    //call to postcode helper -> make a request to postcodes.io to fill in the missing
-    //geolocation information
-
-    $geoData = PostcodeHelper::findGeoCoordsFromPostcode($jsonData->postcode);
-
-    //postcodes.io supplied geolocation variables
-    $geoLocationLon = $geoData[0];
-    $geoLocationLat = $geoData[1];
-}
-
 if($postcodeSupplied === true){
 
     //validate the postcode
@@ -154,11 +143,32 @@ if($postcodeSupplied === true){
 
 }
 
+if($geoLocationSupplied === false && $postcodeSupplied === true){
+    //call to postcode helper -> make a request to postcodes.io to fill in the missing
+    //geolocation information
+
+    $geoData = PostcodeHelper::findGeoCoordsFromPostcode($jsonData->postcode);
+
+    //postcodes.io supplied geolocation variables
+    $geoLocationLon = $geoData[0];
+    $geoLocationLat = $geoData[1];
+}
+
+
+
 if ($postcodeSupplied === false && $geoLocationSupplied === true){
 
-    $postcode = PostcodeHelper::findPostcodeFromGeoCords($jsonData->geoLocationLon, $jsonData->geoLocationLat);
-    $geoLocationLon = $jsonData->geoLocationLon;
-    $geoLocationLat = $jsonData->geoLocationLat;
+    //first validate the geo-cords - make sure they're both valid and within the london area
+
+    $isValidLondonGeo = PostcodeHelper::validateGeoInLondon($jsonData->geoLocationLon, $jsonData->geoLocationLat);
+
+    if($isValidLondonGeo) {
+        $postcode = PostcodeHelper::findPostcodeFromGeoCords($jsonData->geoLocationLon, $jsonData->geoLocationLat);
+        $geoLocationLon = $jsonData->geoLocationLon;
+        $geoLocationLat = $jsonData->geoLocationLat;
+    }
+
+    // todo error code here
 
 }
 

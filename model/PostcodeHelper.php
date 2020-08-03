@@ -61,11 +61,35 @@ class PostcodeHelper
         // close curl resource to free up system resources
         curl_close($ch);
 
-        if($output->result === false){
+        if ($output->result === false) {
             return false;
         } else {
             return true;
         }
+    }
+
+
+    public static function validateGeoInLondon($lon, $lat){
+
+        if (!is_numeric($lat) || !is_numeric($lon)){
+            $response = new Response();
+            $response->setHttpStatusCode(400);
+            $response->setSuccess(false);
+            $response->addMessage("geolocation provided in invalid format");
+            $response->send();
+            exit();
+        }
+
+        //check that geo is in london
+        //North - waltham cross
+        //South - redhill
+        //West - slough
+        //East - grays
+        if (($lon < -0.045988 || $lon > 51.49635) || ($lat < 5)){
+
+        }
+
+        return true;
 
     }
 
