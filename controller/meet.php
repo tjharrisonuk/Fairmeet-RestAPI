@@ -45,7 +45,7 @@ $accesstoken = $_SERVER['HTTP_AUTHORIZATION'];
 
 try {
     //bring back user details / session details from the db
-    $query = $writeDB->prepare('select userid, fullname, accesstokenexpiry, useractive, loginattempts from sessions, users where sessions.userid = users.id and accesstoken = :accesstoken');
+    $query = $writeDB->prepare('select userid, fullname, geoLocationLon, geoLocationLat, postcode, accesstokenexpiry, useractive, loginattempts from sessions, users where sessions.userid = users.id and accesstoken = :accesstoken');
     $query->bindParam(':accesstoken', $accesstoken, PDO::PARAM_STR);
     $query->execute();
 
@@ -66,8 +66,11 @@ try {
     $returned_userid = $row['userid'];
     $returned_userfullname = $row['fullname']; //used to add into attendance table later
     $returned_accesstokenexpiry = $row['accesstokenexpiry'];
-    $returned_useractive = $row['useractive'];
+    $returned_useractive = $row['useractive']; //for future functionality (ability to lock / block a users account)
     $returned_loginattempts = $row['loginattempts'];
+    $returned_userPostcode = $row['postcode']; // to be used by POST new meet
+    $returned_userGeoLat = $row['geoLocationLat']; // to be used by POST new meet
+    $returned_userGeoLon = $row['geoLocationLon']; // to be used by POST new meet
 
     /** ensure that the user is active, that they aren't locked out
      *  and that the access token is still valid
@@ -290,7 +293,7 @@ if(array_key_exists("meetid", $_GET)) {
                 }
 
 
-                /** Now that we have a vaid user */
+                //Now that we have a vaid user
 
                 if ($validateUser == true) {
 
@@ -365,7 +368,6 @@ if(array_key_exists("meetid", $_GET)) {
 
             //add a user to the attendace list if the logged in user is meets organiser
             //or if the the user has an invite to the meet (later functionality not worrying about for now)
-
 
             /** Doesn't need to take in any parameters as these should already be stored in the
              *  users table.
@@ -990,6 +992,7 @@ if(array_key_exists("meetid", $_GET)) {
             $response->send();
             exit();
         }
+
     } elseif ($_SERVER['REQUEST_METHOD'] === 'POST'){
         /** POST request
          *  Create a new meet
@@ -1020,10 +1023,8 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
-            /** TODO - find mandatory fields...
-             *  validate on that basis
-             *  we'll definitely need a title, so putting that in for time being
-             */
+            // ensure that mandatory fields for the meet are set .. at the moment we only require a title. todo expand if necessary
+
             if(!isset($jsonData->title)){
                 $response = new Response();
                 $response->setHttpStatusCode(400); //bad request
@@ -1033,6 +1034,7 @@ if(array_key_exists("meetid", $_GET)) {
                 exit();
             }
 
+
             //try to create new meet based on that. If that fails, it'll throw a meet exception
             $newMeet = new Meet(
                 null, //auto assigned
@@ -1041,9 +1043,12 @@ if(array_key_exists("meetid", $_GET)) {
                 (isset($jsonData->scheduledTime) ? $jsonData->scheduledTime : null),
                 (isset($jsonData->finalised) ? $jsonData->finalised : 'N'),
                 $returned_userid, /** userid posting the meet will be auto assigned as its organiser */
-                (isset($jsonData->geolocationLon) ? $jsonData->geolocationLon : null),
-                (isset($jsonData->geolocationLat) ? $jsonData->geolocationLat : null),
-                (isset($jsonData->postcode) ? $jsonData->postcode : null),
+                $returned_userGeoLon,
+                $returned_userGeoLat,
+                $returned_userPostcode,
+                //(isset($jsonData->geolocationLon) ? $jsonData->geolocationLon : null), /** todo this should originally be set to users geopoint */
+                //(isset($jsonData->geolocationLat) ? $jsonData->geolocationLat : null), // and this
+                //(isset($jsonData->postcode) ? $jsonData->postcode : null), //and this
                 (isset($jsonData->eventType) ? $jsonData->eventType : null),
             );
 
@@ -1058,9 +1063,9 @@ if(array_key_exists("meetid", $_GET)) {
             $postcode = $newMeet->getPostCode();
             $eventType = $newMeet->getEventType();
 
-            /** Start transaction as the meet will need to be inserted into the db
-             *  the organiser (userid posting) will need also to be added into the attendance table
-             */
+             // Start transaction as the meet will need to be inserted into the db
+             // the organiser (userid posting) will need also to be added into the attendance table
+
             $writeDB->beginTransaction();
 
             $query = $writeDB->prepare('insert into meets (id, title, description, scheduledTime, finalised, geolocationLon, geolocationLat, postcode, eventType, organiser) values (null, :title, :description, STR_TO_DATE(:scheduledTime, \'%d/%m/%Y %H:%i\'), :finalised, :geolocationLon, :geolocationLat, :postcode, :eventType, :organiser)');
@@ -1171,8 +1176,8 @@ if(array_key_exists("meetid", $_GET)) {
         }
 
     } else {
-        /** can't patch into /meets/
-         *  can't delete /meets/
+        /** can't PATCH into /meets/
+         *  can't DELETE /meets/
          */
         $response = new Response();
         $response->setHttpStatusCode(400); //bad request

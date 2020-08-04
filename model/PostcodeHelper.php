@@ -83,7 +83,6 @@ class PostcodeHelper
         //East - grays = lon : 0.322098
 
         if ($lat > 51.679998 || $lat < 51.264464 || $lon < -0.508414 || $lon > 0.322098 ){
-
             return false;
         }
 

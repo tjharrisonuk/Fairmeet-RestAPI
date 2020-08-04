@@ -15,12 +15,14 @@ class MPCalc{
     /** todo might have to think about refactoring this somewhere else... doesn't really belong in
      * model, but the controllers are getting long enough as it is..
      */
-    public function loadMeetAttendees($meetid){
+    public function findMidPointForMeetEvent($meetid){
 
 
         try{
             $readDB = DB::connectReadDB();
+
         } catch (PDOException $e){
+
             error_log("Connection error - ".$e, 0);
             $response = new Response();
             $response->setHttpStatusCode(500);
@@ -28,6 +30,7 @@ class MPCalc{
             $response->addMessage("Database Connection Error");
             $response->send();
             exit();
+
         }
 
         try{
@@ -115,6 +118,8 @@ class MPCalc{
 
             echo 'Lat : ' . $resultArray[0] . '<br />';
             echo 'Lon : ' . $resultArray[1];
+
+            return $resultArray;
 
 
             //could return the array and leave it up to another controller here, but, just to experiment... going to try sorting
@@ -211,7 +216,7 @@ echo 'Lat Mid : ' . $latMid;
 echo '<br /><br />';
 echo '<h3> Load Meet Attendees Test</h3>';
 
-$calc->loadMeetAttendees(11);
+$calc->findMidPointForMeetEvent(11);
 
 /*array(2) {
     [0]=> array(3) { [0]=> int(26) [1]=> string(9) "51.456133" [2]=> string(9) "-0.103237" }
