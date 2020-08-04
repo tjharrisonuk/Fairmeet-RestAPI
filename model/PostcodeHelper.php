@@ -72,12 +72,7 @@ class PostcodeHelper
     public static function validateGeoInLondon($lon, $lat){
 
         if (!is_numeric($lat) || !is_numeric($lon)){
-            $response = new Response();
-            $response->setHttpStatusCode(400);
-            $response->setSuccess(false);
-            $response->addMessage("geolocation provided in invalid format");
-            $response->send();
-            exit();
+           return false;
         }
 
         //check that geo is in london

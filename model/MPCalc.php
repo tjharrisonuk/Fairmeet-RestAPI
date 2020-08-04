@@ -1,14 +1,81 @@
 <?php
 namespace fairmeet\model;
+use fairmeet\controller\DB;
+use fairmeet\model\Response;
+use PDO;
+use PDOException;
 use Exception;
+
+require_once ('../controller/DB.php');
 
 
 class MPCalc{
 
-
+    /** todo might have to think about refactoring this somewhere else... doesn't really belong in
+     * model, but the controllers are getting long enough as it is..
+     */
     public function loadMeetAttendees($meetid){
 
-        $attendeeGeocodeArray = array();
+
+        try{
+            $readDB = DB::connectReadDB();
+        } catch (PDOException $e){
+            error_log("Connection error - ".$e, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage("Database Connection Error");
+            $response->send();
+            exit();
+        }
+
+        try{
+            //get a list of attendees by meet id from the attendance table
+            $query = $readDB->prepare('select userid from attendance where meetid = :meetid');
+            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+            $query->execute();
+
+            $rowCount = $query->rowCount();
+
+            if($rowCount == 0){
+                $response = new Response();
+                $response->setHttpStatusCode(500); //not found
+                $response->setSuccess(false);
+                $response->addMessage("An error occurred getting user information");
+                $response->send();
+                exit();
+            }
+
+            $userArray = array();
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+                $userArray[] = $row['userid'];
+            }
+
+            var_dump($userArray);
+
+
+
+
+
+            //query the users table for geolocation information
+
+
+            //fill in the user id - geoLocationLat, geoLocationLat to multidimensional array
+
+
+
+
+        } catch (PDOException $e){
+            error_log("Connection error - ".$e, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage("Database Connection Error");
+            $response->send();
+            exit();
+        }
+
+
 
     }
 
@@ -82,6 +149,10 @@ $latMid = $testResult[1];
 
 echo 'Lon Mid : ' . $lonMid . '<br />';
 echo 'Lat Mid : ' . $latMid;
+
+echo '<br /><br />';
+
+$calc->loadMeetAttendees(2);
 
 
 
