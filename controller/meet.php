@@ -147,15 +147,6 @@ if(array_key_exists("meetid", $_GET)) {
 
         $attendingid = $_GET['attending'];
 
-        /** TODO - should actually check whether or not an "attendingid" has been
-         *  TODO provided, in POST or delete this would be a userid.
-         */
-        /*if(isset($attendingid) && ($attendingid != '')){
-            echo 'yes';
-        } else {
-            echo 'no';
-        }*/
-
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
             /**
@@ -167,7 +158,7 @@ if(array_key_exists("meetid", $_GET)) {
                 $response = new Response();
                 $response->setHttpStatusCode(400); //Bad Request
                 $response->setSuccess(false);
-                $response->addMessage("Cannot get specified user ids attending. Must be blank"); /** TODO - rethink this message */
+                $response->addMessage("Cannot get specified user ids attending. Must be blank");
                 $response->send();
                 exit();
             }

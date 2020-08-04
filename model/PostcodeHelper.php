@@ -81,12 +81,14 @@ class PostcodeHelper
         }
 
         //check that geo is in london
-        //North - waltham cross
-        //South - redhill
-        //West - slough
-        //East - grays
-        if (($lon < -0.045988 || $lon > 51.49635) || ($lat < 5)){
+        //North - waltham cross = lat : 51.679998
+        //South - redhill = lat : 51.264464
+        //West - slough = lon : -0.508414
+        //East - grays = lon : 0.322098
 
+        if ($lat > 51.679998 || $lat < 51.264464 || $lon < -0.508414 || $lon > 0.322098 ){
+
+            return false;
         }
 
         return true;
