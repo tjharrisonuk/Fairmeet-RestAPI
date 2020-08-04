@@ -19,8 +19,9 @@ class PostcodeHelper
         $output = json_decode(curl_exec($ch));
         curl_close($ch);
 
-        $returnLon = $output->result->longitude;
-        $returnLat = $output->result->latitude;
+        //parse back as floats to match storage in db
+        $returnLon = floatval($output->result->longitude);
+        $returnLat = floatval($output->result->latitude);
 
         return [$returnLon, $returnLat];
 

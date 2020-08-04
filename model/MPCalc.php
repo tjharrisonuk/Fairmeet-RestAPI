@@ -7,6 +7,7 @@ use PDOException;
 use Exception;
 
 require_once ('../controller/DB.php');
+require_once ('Response.php');
 
 
 class MPCalc{
@@ -46,22 +47,81 @@ class MPCalc{
                 exit();
             }
 
-            $userArray = array();
+            $userQueryString = "";
+
             while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
-                $userArray[] = $row['userid'];
+                $userQueryString .= "id = " . $row['userid'] . " or ";
             }
 
-            var_dump($userArray);
+            //todo rowcount check
+
+            //take off the last "or" from the string
+
+            $userQueryString = substr($userQueryString, 0, -4);
+
+            //var_dump($userArray);
+
+            $query = $readDB->prepare('select id, geoLocationLat, geoLocationLon from users where ' . $userQueryString);
+            $query->execute();
+
+            $geoCodeArray = array();
+
+            //set up maximum points. Intention being - feed the max lon and lat along with min long lat of the
+            //entire attendance list into the findMidPoint function... (it could work??)
+
+            $maxLon = null; // furtherst north
+            $maxLat = null; // furthers east
 
 
+            $i = 0;
+
+            while ($row = $query->fetch(PDO::FETCH_ASSOC)) {
+
+                //intially set the minimum lat and lon to the first row returned.
+                if($i === 0){
+                    $minLat = $row['geoLocationLat'];
+                    $minLon = $row['geoLocationLon'];
+                }
+
+                //sort the maximumLat increase if further north
+                if($row['geoLocationLat'] >= $maxLat){
+                    $maxLat = $row['geoLocationLat'];
+                }
+
+                if($row['geoLocationLat'] < $minLat){
+                    $minLat = $row['geoLocationLat'];
+                }
+
+                if($row['geoLocationLon'] >= $maxLon){
+                    $maxLon = $row['geoLocationLon'];
+                }
+
+                if($row['geoLocationLon'] < $minLon){
+                    $minLon = $row['geoLocationLon'];
+                }
+
+                $i++;
 
 
+                $geoCodeArray[] = array($row['id'], $row['geoLocationLat'], $row['geoLocationLon']);
+            }
 
-            //query the users table for geolocation information
+            echo "max Lat : " . $maxLat . "</br />";
+            echo "max Lon : " . $maxLon . "</br />";
+            echo "min Lat : " . $minLat . "</br />";
+            echo "min Lon : " . $minLon . "</br />";
+
+            $resultArray = $this->findMid($maxLat, $maxLon, $minLat, $minLon);
+
+            echo 'Lat : ' . $resultArray[0] . '<br />';
+            echo 'Lon : ' . $resultArray[1];
 
 
-            //fill in the user id - geoLocationLat, geoLocationLat to multidimensional array
+            //could return the array and leave it up to another controller here, but, just to experiment... going to try sorting
+            //array and feeding into findMid function from here. It can then return the midpoint to client (probably meet controller) (and the function name / purpose
+            //will have changed.
 
+            //return $geoCodeArray;
 
 
 
@@ -74,8 +134,6 @@ class MPCalc{
             $response->send();
             exit();
         }
-
-
 
     }
 
@@ -151,8 +209,12 @@ echo 'Lon Mid : ' . $lonMid . '<br />';
 echo 'Lat Mid : ' . $latMid;
 
 echo '<br /><br />';
+echo '<h3> Load Meet Attendees Test</h3>';
 
-$calc->loadMeetAttendees(2);
+$calc->loadMeetAttendees(11);
 
-
+/*array(2) {
+    [0]=> array(3) { [0]=> int(26) [1]=> string(9) "51.456133" [2]=> string(9) "-0.103237" }
+    [1]=> array(3) { [0]=> int(28) [1]=> string(9) "51.587121" [2]=> string(9) "-0.103921" }
+}*/
 

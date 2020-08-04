@@ -228,8 +228,8 @@ try{
     $query->bindParam('email', $email, PDO::PARAM_STR);
     $query->bindParam('password', $hashed_password, PDO::PARAM_STR);
     $query->bindParam('postcode', $postcode, PDO::PARAM_STR);
-    $query->bindParam('geoLocationLon', $geoLocationLon, PDO::PARAM_STR);
-    $query->bindParam('geoLocationLat', $geoLocationLat, PDO::PARAM_STR);
+    $query->bindParam('geoLocationLon', $geoLocationLon, PDO::PARAM_INT);
+    $query->bindParam('geoLocationLat', $geoLocationLat, PDO::PARAM_INT);
     $query->execute();
 
     $rowCount = $query->rowCount();
