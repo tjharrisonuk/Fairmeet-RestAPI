@@ -118,13 +118,21 @@ if(strlen($jsonData->fullname) < 1 ||
 
 //fill in the database tables with either provided values in the json - if not fill in the blanks with requests from
 //postcodes.io using helper class
-if ($geoLocationSupplied === true) {
 
-    // todo - validation on geolocation input
+
+if ($geoLocationSupplied === true) {
+    //ensure that that the geolocation info is valid and within the greater london area
+    if(!PostcodeHelper::validateGeoInLondon($jsonData->geoLocationLon, $jsonData->geoLocationLat)){
+        $response = new Response();
+        $response->setHttpStatusCode(400); //request method not allowed
+        $response->setSuccess(false);
+        $response->addMessage("Geolocation info invalid or not in London area.");
+        $response->send();
+        exit();
+    }
 
     $geoLocationLon = $jsonData->geoLocationLon;
-    $geoLocationLon = $jsonData->geoLocationLat;
-
+    $geoLocationLat = $jsonData->geoLocationLat;
 }
 
 if($postcodeSupplied === true){
@@ -147,13 +155,22 @@ if($geoLocationSupplied === false && $postcodeSupplied === true){
     //call to postcode helper -> make a request to postcodes.io to fill in the missing
     //geolocation information
 
-    $geoData = PostcodeHelper::findGeoCoordsFromPostcode($jsonData->postcode);
+    $geoData = PostcodeHelper::findGeoCoordsFromPostcode($postcode);
 
-    //postcodes.io supplied geolocation variables
+    //validate that postcode is in london
+    if(!PostcodeHelper::validateGeoInLondon($geoData[0], $geoData[1])){
+        $response = new Response();
+        $response->setHttpStatusCode(400); //request method not allowed
+        $response->setSuccess(false);
+        $response->addMessage("Postcode supplied not in London area");
+        $response->send();
+        exit();
+    }
+
     $geoLocationLon = $geoData[0];
     $geoLocationLat = $geoData[1];
-}
 
+}
 
 
 if ($postcodeSupplied === false && $geoLocationSupplied === true){
@@ -162,13 +179,19 @@ if ($postcodeSupplied === false && $geoLocationSupplied === true){
 
     $isValidLondonGeo = PostcodeHelper::validateGeoInLondon($jsonData->geoLocationLon, $jsonData->geoLocationLat);
 
-    if($isValidLondonGeo) {
-        $postcode = PostcodeHelper::findPostcodeFromGeoCords($jsonData->geoLocationLon, $jsonData->geoLocationLat);
-        $geoLocationLon = $jsonData->geoLocationLon;
-        $geoLocationLat = $jsonData->geoLocationLat;
+    if(!$isValidLondonGeo) {
+        $response = new Response();
+        $response->setHttpStatusCode(400);
+        $response->setSuccess(false);
+        $response->addMessage("Geolocation not valid or outside of Greater London area");
+        $response->send();
+        exit();
     }
 
-    // todo error code here
+    $postcode = PostcodeHelper::findPostcodeFromGeoCords($jsonData->geoLocationLon, $jsonData->geoLocationLat);
+    $geoLocationLon = $jsonData->geoLocationLon;
+    $geoLocationLat = $jsonData->geoLocationLat;
+
 
 }
 

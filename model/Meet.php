@@ -17,6 +17,7 @@ class Meet {
     //private $_attendees = array(); //an array of userids
 
 
+
     public function __construct($id, $title, $description, $scheduledTime, $finalised, $organiser, $geolocationLon, $geolocationLat, $postcode, $eventType){ //attendees
         $this->setId($id);
         $this->setTitle($title);
