@@ -14,7 +14,6 @@ require_once ('../model/Meet.php');
 require_once ('../model/Response.php');
 
 try {
-
     $writeDB = DB::connectwriteDB();
     $readDB = DB::connectReadDB();
 
