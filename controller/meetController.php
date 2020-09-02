@@ -317,7 +317,20 @@ if(array_key_exists("meetid", $_GET)) {
                         exit();
                     }
 
+                    $calc = new MPCalc();
+                    $newMeetGeo = $calc->findMidPointForMeetEvent($meetid);
+                    $newLon = strval($newMeetGeo[1]);
+                    $newLat = strval($newMeetGeo[0]);
+                    $newPostCode = PostcodeHelper::findPostcodeFromGeoCords($newMeetGeo[0], $newMeetGeo[1]);
+
+                    $updateQuery = $writeDB->prepare('update meets set geolocationLon=:geolocationLon, geolocationLat=:geolocationLat, postcode=:postcode where id = :meetid');
+                    $updateQuery->bindParam(':geolocationLon', $newLon, PDO::PARAM_STR);
+                    $updateQuery->bindParam(':geolocationLat', $newLat, PDO::PARAM_STR);
+                    $updateQuery->bindParam(':postcode', $newPostCode, PDO::PARAM_STR);
+                    $updateQuery->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                    $updateQuery->execute();
                     //Has been successful. Return the updated list of attendees to the client.
+
 
                     $returnQuery = $readDB->prepare('select fullname from attendance where meetid = :meetid');
                     $returnQuery->bindParam(":meetid", $meetid, PDO::PARAM_INT);
