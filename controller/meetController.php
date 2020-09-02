@@ -655,6 +655,15 @@ if(array_key_exists("meetid", $_GET)) {
 
         try {
 
+            //will i first need to validate user has permission to do this??? Can't remember.
+
+
+
+            //first delete all rows in the attendance table that reference this meet
+            $query = $writeDB->prepare('delete from attendance where meetid = :meetid');
+            $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+            $query->execute();
+
             $query = $writeDB->prepare('delete from meets where id = :meetid and organiser = :userid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);
             $query->bindParam(':userid', $returned_userid, PDO::PARAM_INT);
@@ -679,6 +688,7 @@ if(array_key_exists("meetid", $_GET)) {
             exit();
 
         } catch (PDOException $e) {
+            echo $e;
             $response = new Response();
             $response->setHttpStatusCode(500);
             $response->setSuccess(false);
@@ -969,8 +979,8 @@ if(array_key_exists("meetid", $_GET)) {
 
         /** GET request
          *
-         *  TODO - return all meets - that this user is organsing
-         *  TODO - need a seperate REST method somewhere for getting all meets they are attending
+         *
+         *
          */
             //first need to get a list of all meets the user is an attendee of
             //so query the attendance table.
@@ -990,7 +1000,6 @@ if(array_key_exists("meetid", $_GET)) {
                 echo $value;
             }*/
 
-            /** for now just return a list of meets that the user is the organiser of */
             try {
 
                 $query = $readDB->prepare('select id, title, description, DATE_FORMAT(scheduledTime, "%d/%m/%Y %H:%i") as scheduledTime, finalised, organiser, geolocationLon, geolocationLat, postcode, eventType from meets where organiser = :userid');
