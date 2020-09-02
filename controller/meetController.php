@@ -3,6 +3,8 @@ namespace fairmeet\controller;
 use fairmeet\model\AttendanceList;
 use fairmeet\model\AttendanceListException;
 use fairmeet\model\MeetException;
+use fairmeet\model\MPCalc;
+use fairmeet\model\PostcodeHelper;
 use fairmeet\model\Response;
 use fairmeet\controller\DB;
 use fairmeet\model\Meet;
@@ -12,6 +14,8 @@ use PDOException;
 require_once ('DB.php');
 require_once ('../model/Meet.php');
 require_once ('../model/Response.php');
+require_once ('../model/MPCalc.php');
+require_once ('../model/PostcodeHelper.php');
 
 try {
     $writeDB = DB::connectwriteDB();
@@ -453,11 +457,37 @@ if(array_key_exists("meetid", $_GET)) {
                 }
 
                  //Has been successful. Return the updated list of attendees to the client.
+                 //But first adjust the geocoodinates ot the meet event using the calculator
+
+                $calc = new MPCalc();
+                $newMeetGeo = $calc->findMidPointForMeetEvent($meetid);
+                $newLon = strval($newMeetGeo[1]);
+                $newLat = strval($newMeetGeo[0]);
+                $newPostCode = PostcodeHelper::findPostcodeFromGeoCords($newMeetGeo[0], $newMeetGeo[1]);
+
+                $updateQuery = $writeDB->prepare('update meets set geolocationLon=:geolocationLon, geolocationLat=:geolocationLat, postcode=:postcode where id = :meetid');
+                $updateQuery->bindParam(':geolocationLon', $newLon, PDO::PARAM_STR);
+                $updateQuery->bindParam(':geolocationLat', $newLat, PDO::PARAM_STR);
+                $updateQuery->bindParam(':postcode', $newPostCode, PDO::PARAM_STR);
+                $updateQuery->bindParam(':meetid', $meetid, PDO::PARAM_INT);
+                $updateQuery->execute();
+
+                $rowCount = $updateQuery->rowCount();
+
+                if($rowCount == 0){
+                    $response = new Response();
+                    $response->setHttpStatusCode(500);
+                    $response->setSuccess(false);
+                    $response->addMessage("User has not been added to meet");
+                    $response->send();
+                    exit();
+                }
+
+                /** if all ok then return the attendance list to the client */
 
                 $returnQuery = $readDB->prepare('select fullname from attendance where meetid = :meetid');
                 $returnQuery->bindParam(":meetid", $meetid, PDO::PARAM_INT);
                 $returnQuery->execute();
-
 
                 $rowCount = $returnQuery->rowCount();
 
@@ -485,7 +515,8 @@ if(array_key_exists("meetid", $_GET)) {
 
             } catch (PDOException $e){
                 /** TODO - server log this? */
-                $response = Response();
+                echo $e;
+                $response = new Response();
                 $response->setHttpStatusCode(500);
                 $response->setSuccess(false);
                 $response->addMessage('Failed to add user to the meet event');

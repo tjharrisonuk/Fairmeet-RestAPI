@@ -109,16 +109,17 @@ class MPCalc{
                 $geoCodeArray[] = array($row['id'], $row['geoLocationLat'], $row['geoLocationLon']);
             }
 
-            echo "max Lat : " . $maxLat . "</br />";
+            /*echo "max Lat : " . $maxLat . "</br />";
             echo "max Lon : " . $maxLon . "</br />";
             echo "min Lat : " . $minLat . "</br />";
             echo "min Lon : " . $minLon . "</br />";
+            */
 
             $resultArray = $this->findMid($maxLat, $maxLon, $minLat, $minLon);
 
-            echo 'Lat : ' . $resultArray[0] . '<br />';
+            /*echo 'Lat : ' . $resultArray[0] . '<br />';
             echo 'Lon : ' . $resultArray[1];
-
+            */
             return $resultArray;
 
 
@@ -190,18 +191,8 @@ class MPCalc{
 }
 
 
-
+/*
 $calc = new MPCalc();
-
-$ret = $calc->toRad(20);
-
-//echo $ret . '<br /><br />';
-
-echo '<h3> Test Rad Function</h3>';
-echo '10 to Rad == ' . $calc->toRad(10);
-
-echo '<h3> Test Deg Function</h3>';
-echo '10 to Deg == ' . $calc->toDegree(10);
 
 echo '<h3>Calculate Midpoint Test</h3><br />';
 //test E11 2SP -> E17 6ZA
@@ -216,7 +207,7 @@ echo 'Lat Mid : ' . $latMid;
 echo '<br /><br />';
 echo '<h3> Load Meet Attendees Test</h3>';
 
-$calc->findMidPointForMeetEvent(11);
+$calc->findMidPointForMeetEvent(1);
 
 /*array(2) {
     [0]=> array(3) { [0]=> int(26) [1]=> string(9) "51.456133" [2]=> string(9) "-0.103237" }
