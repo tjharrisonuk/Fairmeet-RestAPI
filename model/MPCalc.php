@@ -12,8 +12,8 @@ require_once ('Response.php');
 
 class MPCalc{
 
-    /** todo might have to think about refactoring this somewhere else... doesn't really belong in
-     * model, but the controllers are getting long enough as it is..
+    /**
+     * Mid Point functionality class
      */
     public function findMidPointForMeetEvent($meetid){
 
