@@ -56,13 +56,7 @@ class MPCalc{
                 $userQueryString .= "id = " . $row['userid'] . " or ";
             }
 
-            //todo rowcount check
-
-            //take off the last "or" from the string
-
             $userQueryString = substr($userQueryString, 0, -4);
-
-            //var_dump($userArray);
 
             $query = $readDB->prepare('select id, geoLocationLat, geoLocationLon from users where ' . $userQueryString);
             $query->execute();
@@ -70,11 +64,10 @@ class MPCalc{
             $geoCodeArray = array();
 
             //set up maximum points. Intention being - feed the max lon and lat along with min long lat of the
-            //entire attendance list into the findMidPoint function... (it could work??)
+            //entire attendance list into the findMidPoint function...
 
             $maxLon = null; // furtherst north
             $maxLat = null; // furthers east
-
 
             $i = 0;
 
@@ -105,30 +98,11 @@ class MPCalc{
 
                 $i++;
 
-
                 $geoCodeArray[] = array($row['id'], $row['geoLocationLat'], $row['geoLocationLon']);
             }
 
-            /*echo "max Lat : " . $maxLat . "</br />";
-            echo "max Lon : " . $maxLon . "</br />";
-            echo "min Lat : " . $minLat . "</br />";
-            echo "min Lon : " . $minLon . "</br />";
-            */
-
             $resultArray = $this->findMid($maxLat, $maxLon, $minLat, $minLon);
-
-            /*echo 'Lat : ' . $resultArray[0] . '<br />';
-            echo 'Lon : ' . $resultArray[1];
-            */
             return $resultArray;
-
-
-            //could return the array and leave it up to another controller here, but, just to experiment... going to try sorting
-            //array and feeding into findMid function from here. It can then return the midpoint to client (probably meet controller) (and the function name / purpose
-            //will have changed.
-
-            //return $geoCodeArray;
-
 
 
         } catch (PDOException $e){
@@ -169,9 +143,6 @@ class MPCalc{
 
         $bX = $cosLat2Rad * $cosLonDiffRad;
         $bY = cos($lat2Rad) * sin($longDiffRad);
-
-        //echo 'bX: '. $bX . '<br />';
-        //echo 'bY: '. $bY . '<br />';
 
         //equation to find latitudinal midpoint
         $lat3 = atan2((sin($lat1Rad) + sin($lat2Rad)), sqrt((cos($lat1Rad) + $bX) * (cos($lat1Rad) + $bX + $bY * $bY)));

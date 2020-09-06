@@ -655,10 +655,6 @@ if(array_key_exists("meetid", $_GET)) {
 
         try {
 
-            //will i first need to validate user has permission to do this??? Can't remember.
-
-
-
             //first delete all rows in the attendance table that reference this meet
             $query = $writeDB->prepare('delete from attendance where meetid = :meetid');
             $query->bindParam(':meetid', $meetid, PDO::PARAM_INT);

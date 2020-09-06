@@ -7,9 +7,9 @@ use fairmeet\model\AttendanceList;
 use PDO;
 use PDOException;
 
-require_once ('DB.php');
-require_once ('../model/AttendanceList.php');
-require_once ('../model/Response.php');
+require_once('DB.php');
+require_once('../model/AttendanceList.php');
+require_once('../model/Response.php');
 
 try {
     $writeDB = DB::connectWriteDB();
