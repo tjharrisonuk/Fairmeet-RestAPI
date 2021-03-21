@@ -154,11 +154,6 @@ class MPCalc{
         return [$this->toDegree($lon3), $this->toDegree($lat3)];
     }
 
-    //should take in an array of geolocations gotten from users
-    public function setMeetLocation (){
-
-    }
-
 }
 
 

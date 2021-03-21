@@ -1,0 +1,11 @@
+{
+    "name": "tom/fair-meet-rest-api",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Tom Harrison",
+            "email": "tjharrisonuk@gmail.com"
+        }
+    ],
+    "require": {}
+}
