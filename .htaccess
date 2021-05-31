@@ -18,3 +18,5 @@ RewriteRule ^meets$ controller/meetController.php [L]
 
 RewriteRule ^sessions/([0-9]+)$ controller/sessions.php?sessionid=$1 [L]
 RewriteRule ^sessions$ controller/sessions.php [L]
+
+RewriteRule ^tests$ tests/helloworld.php [L]
