@@ -11,8 +11,6 @@ $dotenv->load();
 
 echo 'mysql:host=' . $_SERVER['DB_SERVER'] . ';port=' . $_SERVER['DB_PORT'] .';dbname=' . $_SERVER['DB_NAME'] . ';charset=utf8';
 
-
-
 class DB {
 
     /** Two database connections write and read
@@ -34,18 +32,6 @@ class DB {
             }
             return self::$writeDBConnection;
     }
-
-
-    /*public static function connectWriteDB(){
-
-        if(self::$writeDBConnection === null){
-            self::$writeDBConnection = new PDO('mysql:host=localhost;dbname=fairmeetdb;charset=utf8', 'tom', 'test');
-            self::$writeDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            self::$writeDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        }
-        return self::$writeDBConnection;
-
-    }*/
 
     public static function connectReadDB(){
         if(self::$readDBConnection === null){
