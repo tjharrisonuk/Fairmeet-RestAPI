@@ -9,7 +9,7 @@ use Dotenv\Dotenv;
 $dotenv = Dotenv::createImmutable('../');
 $dotenv->load();
 
-echo 'mysql:host=' . $_SERVER['DB_SERVER'] . ':' . $_SERVER['DB_PORT'] .';dbname=' . $_SERVER['DB_NAME'] . ';charset=utf8';
+echo 'mysql:host=' . $_SERVER['DB_SERVER'] . ';port=' . $_SERVER['DB_PORT'] .';dbname=' . $_SERVER['DB_NAME'] . ';charset=utf8';
 
 
 
@@ -28,7 +28,7 @@ class DB {
     public static function connectWriteDB(){
 
             if (self::$writeDBConnection === null) {
-                self::$writeDBConnection = new PDO('mysql:host=' . $_SERVER['DB_SERVER'] . ':' . $_SERVER['DB_PORT'] . ';dbname=' . $_SERVER['DB_NAME'] . ';charset=utf8', $_SERVER['DB_USERNAME'], $_SERVER['DB_PASSWORD']);
+                self::$writeDBConnection = new PDO('mysql:host=' . $_SERVER['DB_SERVER'] . ';port=' . $_SERVER['DB_PORT'] . ';dbname=' . $_SERVER['DB_NAME'] . ';charset=utf8', $_SERVER['DB_USERNAME'], $_SERVER['DB_PASSWORD']);
                 self::$writeDBConnection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 self::$writeDBConnection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
             }
